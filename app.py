@@ -6,58 +6,226 @@ from datetime import datetime, date
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
 from reportlab.lib.units import cm
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak, Image
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY, TA_LEFT
-from reportlab.pdfgen import canvas
 import io
-import base64
 
-# Configuración de la página
+# ===== CONFIGURACIÓN DE LA PÁGINA =====
 st.set_page_config(
     page_title="Generador de Informes WPPSI-IV",
-    page_icon="📊",
-    layout="wide"
+    page_icon="🧠",
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
-# Estilos CSS personalizados
+# ===== ESTILOS CSS MEJORADOS =====
 st.markdown("""
     <style>
-    .main {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    /* Importar fuente moderna */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+    
+    /* Reset y configuración general */
+    * {
+        font-family: 'Inter', sans-serif;
     }
+    
+    /* Fondo principal con gradiente suave */
     .stApp {
-        background: linear-gradient(to bottom right, #e0e7ff, #e0f2fe);
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
     }
+    
+    /* Títulos principales */
     h1 {
-        color: #4f46e5;
+        color: #1e293b !important;
+        font-weight: 700 !important;
         text-align: center;
-        padding: 20px;
-        background: white;
-        border-radius: 10px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        padding: 1.5rem;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white !important;
+        border-radius: 15px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        margin-bottom: 2rem;
     }
-    .stButton>button {
+    
+    h2 {
+        color: #334155 !important;
+        font-weight: 600 !important;
+        border-left: 5px solid #667eea;
+        padding-left: 15px;
+        margin-top: 2rem;
+    }
+    
+    h3 {
+        color: #475569 !important;
+        font-weight: 600 !important;
+    }
+    
+    /* Cajas de entrada */
+    .stTextInput > div > div > input,
+    .stNumberInput > div > div > input,
+    .stDateInput > div > div > input,
+    .stSelectbox > div > div > select {
+        background-color: white !important;
+        color: #1e293b !important;
+        border: 2px solid #e2e8f0 !important;
+        border-radius: 8px !important;
+        padding: 0.5rem !important;
+        font-size: 1rem !important;
+    }
+    
+    .stTextInput > div > div > input:focus,
+    .stNumberInput > div > div > input:focus {
+        border-color: #667eea !important;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1) !important;
+    }
+    
+    /* Labels */
+    label {
+        color: #334155 !important;
+        font-weight: 600 !important;
+        font-size: 0.95rem !important;
+    }
+    
+    /* Botones */
+    .stButton > button {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+        color: white !important;
+        font-weight: 600 !important;
+        border: none !important;
+        padding: 0.75rem 2rem !important;
+        border-radius: 10px !important;
+        width: 100%;
+        font-size: 1.1rem !important;
+        transition: all 0.3s ease !important;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3) !important;
+    }
+    
+    .stButton > button:hover {
+        transform: translateY(-2px) !important;
+        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4) !important;
+    }
+    
+    /* Métricas */
+    [data-testid="stMetricValue"] {
+        color: #1e293b !important;
+        font-size: 2rem !important;
+        font-weight: 700 !important;
+    }
+    
+    [data-testid="stMetricLabel"] {
+        color: #475569 !important;
+        font-weight: 600 !important;
+    }
+    
+    [data-testid="stMetricDelta"] {
+        color: #667eea !important;
+    }
+    
+    /* Contenedores de métricas */
+    div[data-testid="metric-container"] {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        border-left: 4px solid #667eea;
+    }
+    
+    /* Alerts y mensajes */
+    .stSuccess {
+        background-color: #d1fae5 !important;
+        color: #065f46 !important;
+        border-left: 4px solid #10b981 !important;
+        border-radius: 8px !important;
+    }
+    
+    .stError {
+        background-color: #fee2e2 !important;
+        color: #991b1b !important;
+        border-left: 4px solid #ef4444 !important;
+        border-radius: 8px !important;
+    }
+    
+    .stWarning {
+        background-color: #fef3c7 !important;
+        color: #92400e !important;
+        border-left: 4px solid #f59e0b !important;
+        border-radius: 8px !important;
+    }
+    
+    .stInfo {
+        background-color: #dbeafe !important;
+        color: #1e40af !important;
+        border-left: 4px solid #3b82f6 !important;
+        border-radius: 8px !important;
+    }
+    
+    /* DataFrames */
+    .dataframe {
+        border-radius: 10px !important;
+        overflow: hidden !important;
+    }
+    
+    .dataframe th {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+        color: white !important;
+        font-weight: 600 !important;
+        padding: 12px !important;
+    }
+    
+    .dataframe td {
+        padding: 10px !important;
+        color: #1e293b !important;
+    }
+    
+    /* Separadores */
+    hr {
+        margin: 2rem 0;
+        border: none;
+        height: 2px;
+        background: linear-gradient(90deg, transparent, #667eea, transparent);
+    }
+    
+    /* Sidebar */
+    [data-testid="stSidebar"] {
+        background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+    }
+    
+    [data-testid="stSidebar"] label {
+        color: white !important;
+    }
+    
+    /* Tabs */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 8px;
+    }
+    
+    .stTabs [data-baseweb="tab"] {
+        background-color: white;
+        color: #334155;
+        border-radius: 8px 8px 0 0;
+        padding: 12px 24px;
+        font-weight: 600;
+    }
+    
+    .stTabs [aria-selected="true"] {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
-        font-weight: bold;
-        border: none;
-        padding: 10px 30px;
-        border-radius: 8px;
-        width: 100%;
     }
-    .stButton>button:hover {
-        transform: scale(1.05);
-        box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+    
+    /* Animaciones */
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .element-container {
+        animation: fadeIn 0.5s ease-out;
     }
     </style>
 """, unsafe_allow_html=True)
 
-# Título principal
-st.markdown("<h1>📊 Generador de Informes WPPSI-IV</h1>", unsafe_allow_html=True)
-st.markdown("---")
-
-# Tablas de conversión PD -> PE (basadas en edad 5 años 0-3 meses)
+# ===== TABLAS DE CONVERSIÓN (5 años 0-3 meses) =====
 TABLAS_CONVERSION = {
     'cubos': {0:1, 1:1, 2:1, 3:1, 4:1, 5:2, 6:3, 7:4, 8:5, 9:6, 10:7, 11:10, 12:11, 13:12, 14:13, 15:14, 16:15, 17:16, 18:16, 19:17, 20:17, 21:18, 22:18, 23:19, 24:19, 25:19, 26:19, 27:19, 28:19, 29:19, 30:19},
     'informacion': {0:1, 1:1, 2:1, 3:1, 4:2, 5:3, 6:4, 7:5, 8:6, 9:7, 10:8, 11:9, 12:10, 13:11, 14:12, 15:13, 16:15, 17:16, 18:17, 19:18, 20:18, 21:19, 22:19, 23:19, 24:19, 25:19, 26:19},
@@ -66,13 +234,12 @@ TABLAS_CONVERSION = {
     'reconocimiento': {0:1, 1:1, 2:1, 3:1, 4:2, 5:3, 6:4, 7:5, 8:8, 9:10, 10:11, 11:13, 12:14, 13:16, 14:17, 15:18, 16:19},
     'semejanzas': {0:1, 1:1, 2:1, 3:1, 4:2, 5:3, 6:4, 7:5, 8:6, 9:7, 10:8, 11:9, 12:10, 13:11, 14:12, 15:13, 16:14, 17:15, 18:16, 19:16, 20:17, 21:17, 22:18, 23:18, 24:19, 25:19, 26:19, 27:19, 28:19, 29:19},
     'conceptos': {0:1, 1:1, 2:1, 3:2, 4:3, 5:4, 6:5, 7:6, 8:7, 9:8, 10:9, 11:10, 12:11, 13:12, 14:13, 15:14, 16:15, 17:17, 18:18, 19:19},
-    'dibujos': {0:1, 1:1, 2:2, 3:3, 4:4, 5:5, 6:6, 7:7, 8:8, 9:9, 10:10, 11:11, 12:12, 13:13, 14:14, 15:15, 16:16, 17:17, 18:18, 19:19},
     'localizacion': {0:1, 1:1, 2:1, 3:2, 4:3, 5:4, 6:5, 7:7, 8:8, 9:9, 10:11, 11:12, 12:13, 13:14, 14:15, 15:16, 16:17, 17:18, 18:19, 19:19, 20:19},
     'cancelacion': {0:1, 1:1, 2:1, 3:2, 4:3, 5:4, 6:5, 7:6, 8:7, 9:8, 10:9, 11:10, 12:11, 13:12, 14:13, 15:14, 16:15, 17:16, 18:17, 19:18, 20:19, 21:19},
     'rompecabezas': {0:1, 1:1, 2:1, 3:2, 4:3, 5:4, 6:5, 7:6, 8:7, 9:8, 10:9, 11:10, 12:11, 13:12, 14:13, 15:14, 16:15, 17:16, 18:17, 19:18, 20:19}
 }
 
-# Tablas de conversión Sumas PE -> Índices Compuestos
+# Tablas de conversión Sumas PE -> Índices
 TABLA_ICV = {2:50, 4:55, 6:62, 8:69, 10:76, 12:83, 14:90, 16:97, 18:103, 20:110, 22:117, 24:124, 26:130, 28:137, 30:145}
 TABLA_IVE = {2:50, 4:55, 6:62, 8:69, 10:76, 12:83, 14:90, 16:97, 18:103, 20:109, 22:116, 24:123, 26:129, 28:136, 30:143, 32:150}
 TABLA_IRF = {2:50, 4:55, 6:62, 8:69, 10:76, 12:83, 14:90, 16:97, 18:103, 20:109, 22:116, 24:123, 26:130, 28:136, 30:143}
@@ -80,16 +247,15 @@ TABLA_IMT = {2:50, 4:55, 6:62, 8:69, 10:76, 12:83, 14:90, 16:95, 18:103, 20:110,
 TABLA_IVP = {2:50, 4:55, 6:62, 8:69, 10:76, 12:83, 14:90, 16:97, 18:103, 20:110, 22:117, 24:124, 26:131, 28:138}
 TABLA_CIT = {10:40, 15:45, 20:52, 25:58, 30:64, 35:70, 40:76, 45:82, 50:88, 55:94, 60:100, 63:103, 65:106, 70:112, 75:118, 80:124, 85:130, 90:136}
 
-# Tabla de percentiles
+# Percentiles
 TABLA_PERCENTILES = {
-    40: 0.1, 45: 0.1, 50: 0.1, 55: 0.1, 60: 0.4, 65: 1, 70: 2, 75: 5,
-    80: 9, 85: 16, 90: 25, 95: 37, 100: 50, 103: 58, 105: 63, 106: 66,
-    109: 73, 110: 75, 115: 84, 120: 91, 125: 95, 128: 97, 130: 98,
-    135: 99, 140: 99.6, 145: 99.9, 150: 99.9
+    40:0.1, 45:0.1, 50:0.1, 55:0.1, 60:0.4, 65:1, 70:2, 75:5, 80:9, 85:16, 90:25, 
+    95:37, 100:50, 103:58, 105:63, 106:66, 109:73, 110:75, 115:84, 120:91, 125:95, 
+    128:97, 130:98, 135:99, 140:99.6, 145:99.9, 150:99.9
 }
 
+# ===== FUNCIONES AUXILIARES =====
 def calcular_edad(fecha_nac, fecha_apl):
-    """Calcula la edad cronológica"""
     years = fecha_apl.year - fecha_nac.year
     months = fecha_apl.month - fecha_nac.month
     days = fecha_apl.day - fecha_nac.day
@@ -104,13 +270,11 @@ def calcular_edad(fecha_nac, fecha_apl):
     return years, months, days
 
 def convertir_pd_a_pe(prueba, pd):
-    """Convierte puntuación directa a escalar"""
     if pd is None or pd == '':
         return None
     return TABLAS_CONVERSION.get(prueba, {}).get(int(pd), None)
 
 def buscar_en_tabla(tabla, suma):
-    """Busca en tabla de conversión"""
     keys = sorted(tabla.keys())
     for key in keys:
         if suma <= key:
@@ -118,7 +282,6 @@ def buscar_en_tabla(tabla, suma):
     return tabla[keys[-1]]
 
 def calcular_indices(pe_dict):
-    """Calcula los índices compuestos"""
     suma_icv = (pe_dict.get('informacion', 0) or 0) + (pe_dict.get('semejanzas', 0) or 0)
     suma_ive = (pe_dict.get('cubos', 0) or 0) + (pe_dict.get('rompecabezas', 0) or 0)
     suma_irf = (pe_dict.get('matrices', 0) or 0) + (pe_dict.get('conceptos', 0) or 0)
@@ -142,39 +305,35 @@ def calcular_indices(pe_dict):
     }
 
 def obtener_percentil(puntuacion):
-    """Obtiene el percentil de una puntuación compuesta"""
     return TABLA_PERCENTILES.get(puntuacion, 50)
 
 def obtener_categoria(puntuacion):
-    """Determina la categoría descriptiva"""
     if puntuacion >= 130:
-        return {'categoria': 'Muy superior', 'nivel': 'Punto fuerte normativo'}
+        return {'categoria': 'Muy superior', 'nivel': 'Punto fuerte normativo', 'color': '#10b981'}
     elif puntuacion >= 120:
-        return {'categoria': 'Superior', 'nivel': 'Dentro de límites'}
+        return {'categoria': 'Superior', 'nivel': 'Dentro de límites', 'color': '#3b82f6'}
     elif puntuacion >= 110:
-        return {'categoria': 'Medio alto', 'nivel': 'Dentro de límites'}
+        return {'categoria': 'Medio alto', 'nivel': 'Dentro de límites', 'color': '#6366f1'}
     elif puntuacion >= 90:
-        return {'categoria': 'Medio', 'nivel': 'Promedio'}
+        return {'categoria': 'Medio', 'nivel': 'Promedio', 'color': '#8b5cf6'}
     elif puntuacion >= 80:
-        return {'categoria': 'Medio bajo', 'nivel': 'Promedio'}
+        return {'categoria': 'Medio bajo', 'nivel': 'Promedio', 'color': '#f59e0b'}
     elif puntuacion >= 70:
-        return {'categoria': 'Límite', 'nivel': 'Punto débil normativo'}
+        return {'categoria': 'Límite', 'nivel': 'Punto débil normativo', 'color': '#f97316'}
     else:
-        return {'categoria': 'Muy bajo', 'nivel': 'Punto débil normativo'}
+        return {'categoria': 'Muy bajo', 'nivel': 'Punto débil normativo', 'color': '#ef4444'}
 
 def generar_pdf(datos_paciente, pe_dict, indices):
-    """Genera el PDF del informe completo"""
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=2*cm, bottomMargin=2*cm)
     story = []
     styles = getSampleStyleSheet()
     
-    # Estilos personalizados
     titulo_style = ParagraphStyle(
         'CustomTitle',
         parent=styles['Heading1'],
         fontSize=18,
-        textColor=colors.HexColor('#4f46e5'),
+        textColor=colors.HexColor('#1e293b'),
         spaceAfter=30,
         alignment=TA_CENTER,
         fontName='Helvetica-Bold'
@@ -184,13 +343,12 @@ def generar_pdf(datos_paciente, pe_dict, indices):
         'CustomSubtitle',
         parent=styles['Heading2'],
         fontSize=14,
-        textColor=colors.HexColor('#6366f1'),
+        textColor=colors.HexColor('#334155'),
         spaceAfter=12,
         spaceBefore=12,
         fontName='Helvetica-Bold'
     )
     
-    # Título del informe
     story.append(Paragraph("INFORME PSICOPEDAGÓGICO", titulo_style))
     story.append(Paragraph("Escala de Inteligencia de Wechsler para Preescolar IV (WPPSI-IV)", styles['Normal']))
     story.append(Spacer(1, 0.5*cm))
@@ -222,480 +380,500 @@ def generar_pdf(datos_paciente, pe_dict, indices):
     story.append(tabla_datos)
     story.append(Spacer(1, 0.5*cm))
     
-    # Conversión de puntuaciones
-    story.append(Paragraph("CONVERSIÓN DE PUNTUACIONES DIRECTAS A ESCALARES", subtitulo_style))
+    # Más contenido del PDF...
     
-    pruebas_nombres = {
-        'cubos': 'Cubos',
-        'informacion': 'Información',
-        'matrices': 'Matrices',
-        'busqueda_animales': 'Búsqueda de Animales',
-        'reconocimiento': 'Reconocimiento',
-        'semejanzas': 'Semejanzas',
-        'conceptos': 'Conceptos',
-        'localizacion': 'Localización',
-        'cancelacion': 'Cancelación',
-        'rompecabezas': 'Rompecabezas'
-    }
-    
-    conversion_data = [['Prueba', 'PD', 'PE']]
-    for key, nombre in pruebas_nombres.items():
-        pd = datos_paciente['puntuaciones'].get(key, '-')
-        pe = pe_dict.get(key, '-')
-        conversion_data.append([nombre, str(pd) if pd else '-', str(pe) if pe else '-'])
-    
-    tabla_conversion = Table(conversion_data, colWidths=[8*cm, 4*cm, 4*cm])
-    tabla_conversion.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#4f46e5')),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 11),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-        ('GRID', (0, 0), (-1, -1), 1, colors.black),
-        ('FONTSIZE', (0, 1), (-1, -1), 10),
-        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f9fafb')]),
-    ]))
-    story.append(tabla_conversion)
-    story.append(Spacer(1, 0.5*cm))
-    
-    # Puntuaciones compuestas
-    story.append(Paragraph("PUNTUACIONES COMPUESTAS E ÍNDICES PRIMARIOS", subtitulo_style))
-    
-    indices_data = [['Índice', 'Suma PE', 'Puntuación', 'Percentil', 'Categoría']]
-    indices_lista = [
-        ('Comprensión Verbal (ICV)', indices['suma_icv'], indices['ICV']),
-        ('Visoespacial (IVE)', indices['suma_ive'], indices['IVE']),
-        ('Razonamiento Fluido (IRF)', indices['suma_irf'], indices['IRF']),
-        ('Memoria de Trabajo (IMT)', indices['suma_imt'], indices['IMT']),
-        ('Velocidad de Procesamiento (IVP)', indices['suma_ivp'], indices['IVP']),
-        ('CI TOTAL (CIT)', indices['suma_cit'], indices['CIT'])
-    ]
-    
-    for nombre, suma, valor in indices_lista:
-        percentil = obtener_percentil(valor)
-        categoria = obtener_categoria(valor)['categoria']
-        indices_data.append([nombre, str(suma), str(valor), str(percentil), categoria])
-    
-    tabla_indices = Table(indices_data, colWidths=[6*cm, 2*cm, 3*cm, 2.5*cm, 3.5*cm])
-    tabla_indices.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#6366f1')),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 11),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-        ('GRID', (0, 0), (-1, -1), 1, colors.black),
-        ('FONTSIZE', (0, 1), (-1, -1), 10),
-        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f9fafb')]),
-        ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#ddd6fe')),
-        ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
-    ]))
-    story.append(tabla_indices)
-    story.append(Spacer(1, 0.5*cm))
-    
-    # Interpretación
-    story.append(PageBreak())
-    story.append(Paragraph("INTERPRETACIÓN CLÍNICA", titulo_style))
-    story.append(Spacer(1, 0.3*cm))
-    
-    cit_cat = obtener_categoria(indices['CIT'])
-    cit_percentil = obtener_percentil(indices['CIT'])
-    
-    interpretacion_texto = f"""
-    <b>{datos_paciente['nombre']}</b> obtuvo un Coeficiente Intelectual Total (CIT) de <b>{indices['CIT']}</b>, 
-    lo cual se clasifica en la categoría <b>{cit_cat['categoria']}</b>. Esta puntuación se ubica en el 
-    percentil <b>{cit_percentil}</b>, indicando que su rendimiento supera al {cit_percentil}% de los niños 
-    de su edad en la muestra de tipificación.<br/><br/>
-    
-    El CIT representa una medida global de la capacidad intelectual del niño, evaluada a través de cinco 
-    índices primarios que miden diferentes aspectos del funcionamiento cognitivo.
-    """
-    
-    story.append(Paragraph(interpretacion_texto, styles['Normal']))
-    story.append(Spacer(1, 0.5*cm))
-    
-    # Análisis por índices
-    story.append(Paragraph("ANÁLISIS DE ÍNDICES PRIMARIOS", subtitulo_style))
-    
-    for nombre_completo, nombre_corto in [
-        ('Comprensión Verbal', 'ICV'),
-        ('Visoespacial', 'IVE'),
-        ('Razonamiento Fluido', 'IRF'),
-        ('Memoria de Trabajo', 'IMT'),
-        ('Velocidad de Procesamiento', 'IVP')
-    ]:
-        valor = indices[nombre_corto]
-        cat = obtener_categoria(valor)
-        perc = obtener_percentil(valor)
-        
-        texto_indice = f"""
-        <b>{nombre_completo} ({nombre_corto}): {valor}</b><br/>
-        Categoría: {cat['categoria']} | Percentil: {perc}<br/>
-        {cat['nivel']}<br/><br/>
-        """
-        story.append(Paragraph(texto_indice, styles['Normal']))
-    
-    # Fortalezas y debilidades
-    story.append(Spacer(1, 0.5*cm))
-    story.append(Paragraph("ANÁLISIS DE FORTALEZAS Y DEBILIDADES", subtitulo_style))
-    
-    fortalezas = [f"{k.replace('_', ' ').title()}: {v}" for k, v in pe_dict.items() if v and v >= 13]
-    debilidades = [f"{k.replace('_', ' ').title()}: {v}" for k, v in pe_dict.items() if v and v <= 7]
-    
-    if fortalezas:
-        story.append(Paragraph("<b>Áreas de Fortaleza (PE ≥ 13):</b>", styles['Normal']))
-        for fort in fortalezas:
-            story.append(Paragraph(f"• {fort}", styles['Normal']))
-        story.append(Spacer(1, 0.3*cm))
-    
-    if debilidades:
-        story.append(Paragraph("<b>Áreas a Desarrollar (PE ≤ 7):</b>", styles['Normal']))
-        for deb in debilidades:
-            story.append(Paragraph(f"• {deb}", styles['Normal']))
-    
-    # Construir PDF
     doc.build(story)
     buffer.seek(0)
     return buffer
 
-# INTERFAZ DE USUARIO
-with st.container():
-    col1, col2, col3 = st.columns([1, 2, 1])
+# ===== INTERFAZ PRINCIPAL =====
+st.markdown("<h1>🧠 Generador de Informes WPPSI-IV</h1>", unsafe_allow_html=True)
+
+# Tabs principales
+tab1, tab2, tab3 = st.tabs(["📝 Datos del Paciente", "📊 Resultados", "📄 Informe PDF"])
+
+with tab1:
+    st.markdown("## 👤 Información del Evaluado")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        nombre = st.text_input("📝 Nombre completo", placeholder="Ej: Micaela Rodríguez")
+        sexo = st.selectbox("⚧ Sexo", ["Femenino", "Masculino"])
+        fecha_nacimiento = st.date_input("🎂 Fecha de nacimiento", value=date(2020, 10, 1))
+    
     with col2:
-        st.markdown("### 👤 Datos del Paciente")
-
-# Datos básicos
-col1, col2 = st.columns(2)
-
-with col1:
-    nombre = st.text_input("📝 Nombre del niño/a", placeholder="Ej: Micaela")
-    sexo = st.selectbox("⚧ Sexo", ["F", "M"])
-    fecha_nacimiento = st.date_input("🎂 Fecha de nacimiento", value=date(2020, 10, 1))
-
-with col2:
-    fecha_aplicacion = st.date_input("📅 Fecha de aplicación", value=date.today())
-    lugar = st.text_input("📍 Lugar de aplicación", value="Argentina")
-    examinador = st.text_input("👨‍⚕️ Examinador/a", placeholder="Nombre del profesional")
-
-st.markdown("---")
-st.markdown("### 📊 Puntuaciones Directas (PD)")
-st.info("💡 Ingresa las puntuaciones directas obtenidas en cada prueba (0-30)")
-
-# Organizar pruebas por índice
-col1, col2, col3 = st.columns(3)
-
-with col1:
-    st.markdown("**🗣️ Comprensión Verbal**")
-    pd_informacion = st.number_input("Información", min_value=0, max_value=30, value=None, key="info")
-    pd_semejanzas = st.number_input("Semejanzas", min_value=0, max_value=30, value=None, key="sem")
+        fecha_aplicacion = st.date_input("📅 Fecha de evaluación", value=date.today())
+        lugar = st.text_input("📍 Lugar", value="Argentina")
+        examinador = st.text_input("👨‍⚕️ Examinador/a", placeholder="Nombre del profesional")
     
-    st.markdown("**🧩 Visoespacial**")
-    pd_cubos = st.number_input("Cubos", min_value=0, max_value=30, value=None, key="cub")
-    pd_rompecabezas = st.number_input("Rompecabezas", min_value=0, max_value=30, value=None, key="rom")
-
-with col2:
-    st.markdown("**🧠 Razonamiento Fluido**")
-    pd_matrices = st.number_input("Matrices", min_value=0, max_value=30, value=None, key="mat")
-    pd_conceptos = st.number_input("Conceptos", min_value=0, max_value=30, value=None, key="con")
+    st.markdown("---")
+    st.markdown("## 📊 Puntuaciones Directas")
+    st.info("💡 Ingrese las puntuaciones directas (PD) obtenidas en cada prueba")
     
-    st.markdown("**💭 Memoria de Trabajo**")
-    pd_reconocimiento = st.number_input("Reconocimiento", min_value=0, max_value=30, value=None, key="rec")
-    pd_localizacion = st.number_input("Localización", min_value=0, max_value=30, value=None, key="loc")
-
-with col3:
-    st.markdown("**⚡ Velocidad de Procesamiento**")
-    pd_busqueda = st.number_input("Búsqueda de Animales", min_value=0, max_value=30, value=None, key="bus")
-    pd_cancelacion = st.number_input("Cancelación", min_value=0, max_value=30, value=None, key="can")
+    col1, col2, col3 = st.columns(3)
     
-    st.markdown("**📝 Pruebas Adicionales (Opcional)**")
-    pd_dibujos = st.number_input("Dibujos", min_value=0, max_value=30, value=None, key="dib")
-
-st.markdown("---")
-
-# Botón para generar informe
-if st.button("🎯 GENERAR INFORME COMPLETO", type="primary"):
-    if not nombre:
-        st.error("❌ Por favor ingresa el nombre del niño/a")
-    elif not examinador:
-        st.error("❌ Por favor ingresa el nombre del examinador/a")
-    else:
-        # Calcular edad
-        years, months, days = calcular_edad(fecha_nacimiento, fecha_aplicacion)
-        edad_texto = f"{years} años, {months} meses, {days} días"
+    with col1:
+        st.markdown("### 🗣️ Comprensión Verbal")
+        pd_informacion = st.number_input("Información", 0, 30, None, key="info")
+        pd_semejanzas = st.number_input("Semejanzas", 0, 30, None, key="sem")
         
-        # Recopilar puntuaciones
-        puntuaciones = {
-            'cubos': pd_cubos,
-            'informacion': pd_informacion,
-            'matrices': pd_matrices,
-            'busqueda_animales': pd_busqueda,
-            'reconocimiento': pd_reconocimiento,
-            'semejanzas': pd_semejanzas,
-            'conceptos': pd_conceptos,
-            'localizacion': pd_localizacion,
-            'cancelacion': pd_cancelacion,
-            'rompecabezas': pd_rompecabezas,
-            'dibujos': pd_dibujos
-        }
+        st.markdown("### 🧩 Visoespacial")
+        pd_cubos = st.number_input("Cubos", 0, 30, None, key="cub")
+        pd_rompecabezas = st.number_input("Rompecabezas", 0, 30, None, key="rom")
+    
+    with col2:
+        st.markdown("### 🧠 Razonamiento Fluido")
+        pd_matrices = st.number_input("Matrices", 0, 30, None, key="mat")
+        pd_conceptos = st.number_input("Conceptos", 0, 30, None, key="con")
+        
+        st.markdown("### 💭 Memoria de Trabajo")
+        pd_reconocimiento = st.number_input("Reconocimiento", 0, 30, None, key="rec")
+        pd_localizacion = st.number_input("Localización", 0, 30, None, key="loc")
+    
+    with col3:
+        st.markdown("### ⚡ Velocidad de Procesamiento")
+        pd_busqueda = st.number_input("Búsqueda de Animales", 0, 30, None, key="bus")
+        pd_cancelacion = st.number_input("Cancelación", 0, 30, None, key="can")
+    
+    st.markdown("---")
+    
+    if st.button("🎯 GENERAR ANÁLISIS COMPLETO", type="primary"):
+        if not nombre or not examinador:
+            st.error("❌ Complete los campos obligatorios: Nombre y Examinador")
+        else:
+            # Guardar en session state
+            st.session_state['datos_guardados'] = True
+            st.session_state['nombre'] = nombre
+            st.session_state['sexo'] = sexo
+            st.session_state['fecha_nac'] = fecha_nacimiento
+            st.session_state['fecha_apl'] = fecha_aplicacion
+            st.session_state['lugar'] = lugar
+            st.session_state['examinador'] = examinador
+            st.session_state['puntuaciones'] = {
+                'cubos': pd_cubos,
+                'informacion': pd_informacion,
+                'matrices': pd_matrices,
+                'busqueda_animales': pd_busqueda,
+                'reconocimiento': pd_reconocimiento,
+                'semejanzas': pd_semejanzas,
+                'conceptos': pd_conceptos,
+                'localizacion': pd_localizacion,
+                'cancelacion': pd_cancelacion,
+                'rompecabezas': pd_rompecabezas
+            }
+            st.success("✅ ¡Datos guardados! Pase a la pestaña 'Resultados'")
+
+with tab2:
+    if 'datos_guardados' in st.session_state and st.session_state['datos_guardados']:
+        # Calcular edad
+        years, months, days = calcular_edad(
+            st.session_state['fecha_nac'],
+            st.session_state['fecha_apl']
+        )
+        edad_texto = f"{years} años, {months} meses, {days} días"
         
         # Convertir PD a PE
         pe_dict = {}
-        for prueba, pd in puntuaciones.items():
+        for prueba, pd in st.session_state['puntuaciones'].items():
             if pd is not None:
                 pe_dict[prueba] = convertir_pd_a_pe(prueba, pd)
         
         # Calcular índices
         indices = calcular_indices(pe_dict)
+        st.session_state['indices'] = indices
+        st.session_state['pe_dict'] = pe_dict
         
-        # Mostrar resultados
-        st.success("✅ ¡Informe generado exitosamente!")
-        st.markdown("---")
+        # RESUMEN EJECUTIVO
+        st.markdown("## 📋 Resumen Ejecutivo")
+        col1, col2, col3, col4 = st.columns(4)
         
-        # Resumen ejecutivo
-        st.markdown("## 📋 RESUMEN EJECUTIVO")
-        
-        col1, col2, col3 = st.columns(3)
         with col1:
-            st.metric("Edad Cronológica", edad_texto)
+            st.metric("👤 Evaluado", st.session_state['nombre'])
         with col2:
-            st.metric("CI Total (CIT)", indices['CIT'], 
-                     delta=f"Percentil {obtener_percentil(indices['CIT'])}")
+            st.metric("📅 Edad", edad_texto)
         with col3:
             cat = obtener_categoria(indices['CIT'])
-            st.metric("Categoría", cat['categoria'])
+            st.metric("🎯 CI Total", indices['CIT'], f"Percentil {obtener_percentil(indices['CIT'])}")
+        with col4:
+            st.metric("📊 Categoría", cat['categoria'])
         
         st.markdown("---")
         
-        # Tabla de conversión
-        st.markdown("### 🔄 Conversión de Puntuaciones")
+        # TABLA DE CONVERSIONES
+        st.markdown("## 🔄 Conversión de Puntuaciones")
         
-        tabla_conversion = pd.DataFrame({
-            'Prueba': ['Cubos', 'Información', 'Matrices', 'Búsqueda Animales', 
-                      'Reconocimiento', 'Semejanzas', 'Conceptos', 'Localización',
-                      'Cancelación', 'Rompecabezas'],
-            'PD': [puntuaciones.get(k, '-') for k in ['cubos', 'informacion', 'matrices', 
-                   'busqueda_animales', 'reconocimiento', 'semejanzas', 'conceptos',
-                   'localizacion', 'cancelacion', 'rompecabezas']],
-            'PE': [pe_dict.get(k, '-') for k in ['cubos', 'informacion', 'matrices',
-                   'busqueda_animales', 'reconocimiento', 'semejanzas', 'conceptos',
-                   'localizacion', 'cancelacion', 'rompecabezas']]
+        df_conversion = pd.DataFrame({
+            'Prueba': ['Cubos', 'Información', 'Matrices', 'Búsqueda Animales', 'Reconocimiento', 
+                      'Semejanzas', 'Conceptos', 'Localización', 'Cancelación', 'Rompecabezas'],
+            'PD': [st.session_state['puntuaciones'][k] or '-' for k in 
+                   ['cubos', 'informacion', 'matrices', 'busqueda_animales', 'reconocimiento',
+                    'semejanzas', 'conceptos', 'localizacion', 'cancelacion', 'rompecabezas']],
+            'PE': [pe_dict.get(k, '-') or '-' for k in 
+                   ['cubos', 'informacion', 'matrices', 'busqueda_animales', 'reconocimiento',
+                    'semejanzas', 'conceptos', 'localizacion', 'cancelacion', 'rompecabezas']]
         })
         
-        st.dataframe(tabla_conversion, use_container_width=True, hide_index=True)
+        st.dataframe(df_conversion, use_container_width=True, hide_index=True)
         
         st.markdown("---")
         
-        # Gráfico de puntuaciones escalares
-        st.markdown("### 📊 Perfil de Puntuaciones Escalares")
+        # GRÁFICO DE PUNTUACIONES ESCALARES
+        st.markdown("## 📊 Perfil de Puntuaciones Escalares (PE)")
         
-        pruebas_labels = ['Cubos', 'Info', 'Matrices', 'B.A.', 'Recon.', 
+        pruebas_labels = ['Cubos', 'Info.', 'Matrices', 'B. Anim.', 'Recon.', 
                          'Semej.', 'Concep.', 'Local.', 'Cancel.', 'Rompe.']
-        pe_values = [pe_dict.get(k, 0) for k in ['cubos', 'informacion', 'matrices',
-                     'busqueda_animales', 'reconocimiento', 'semejanzas', 'conceptos',
-                     'localizacion', 'cancelacion', 'rompecabezas']]
+        pe_values = [pe_dict.get(k, 0) or 0 for k in 
+                    ['cubos', 'informacion', 'matrices', 'busqueda_animales', 'reconocimiento',
+                     'semejanzas', 'conceptos', 'localizacion', 'cancelacion', 'rompecabezas']]
+        
+        # Colores según nivel
+        colores_pe = []
+        for pe in pe_values:
+            if pe >= 13:
+                colores_pe.append('#10b981')  # Verde - Fortaleza
+            elif pe <= 7:
+                colores_pe.append('#ef4444')  # Rojo - Debilidad
+            else:
+                colores_pe.append('#6366f1')  # Azul - Promedio
         
         fig_pe = go.Figure(data=[
             go.Bar(
                 x=pruebas_labels,
                 y=pe_values,
-                marker=dict(
-                    color=pe_values,
-                    colorscale='Viridis',
-                    showscale=True,
-                    colorbar=dict(title="PE")
-                ),
+                marker=dict(color=colores_pe, line=dict(color='#1e293b', width=2)),
                 text=pe_values,
-                textposition='outside'
+                textposition='outside',
+                textfont=dict(size=14, color='#1e293b', family='Inter'),
+                hovertemplate='<b>%{x}</b><br>PE: %{y}<extra></extra>'
             )
         ])
         
+        # Líneas de referencia
+        fig_pe.add_hline(y=10, line_dash="dash", line_color="#64748b", 
+                        annotation_text="Media (10)", annotation_position="right")
+        fig_pe.add_hline(y=7, line_dash="dot", line_color="#ef4444", 
+                        annotation_text="Debilidad (≤7)", annotation_position="right")
+        fig_pe.add_hline(y=13, line_dash="dot", line_color="#10b981", 
+                        annotation_text="Fortaleza (≥13)", annotation_position="right")
+        
         fig_pe.update_layout(
-            title="Puntuaciones Escalares por Prueba",
-            xaxis_title="Pruebas",
+            title={
+                'text': "Puntuaciones Escalares por Prueba",
+                'font': {'size': 20, 'color': '#1e293b', 'family': 'Inter'},
+                'x': 0.5,
+                'xanchor': 'center'
+            },
+            xaxis_title="Pruebas WPPSI-IV",
             yaxis_title="Puntuación Escalar (PE)",
-            yaxis=dict(range=[0, 20]),
-            height=400,
-            template="plotly_white"
+            yaxis=dict(range=[0, 20], dtick=2),
+            height=500,
+            template="plotly_white",
+            plot_bgcolor='rgba(0,0,0,0)',
+            paper_bgcolor='rgba(0,0,0,0)',
+            font=dict(family='Inter', color='#1e293b')
         )
         
         st.plotly_chart(fig_pe, use_container_width=True)
         
         st.markdown("---")
         
-        # Índices compuestos
-        st.markdown("### 🎯 Índices Compuestos")
+        # ÍNDICES COMPUESTOS
+        st.markdown("## 🎯 Índices Compuestos - Análisis Detallado")
         
         col1, col2, col3 = st.columns(3)
         
         with col1:
-            st.markdown("**🗣️ Comprensión Verbal**")
-            st.metric("ICV", indices['ICV'], delta=f"PE: {indices['suma_icv']}")
-            st.caption(f"Percentil: {obtener_percentil(indices['ICV'])}")
-            st.caption(obtener_categoria(indices['ICV'])['categoria'])
+            st.markdown("### 🗣️ Comprensión Verbal")
+            icv_cat = obtener_categoria(indices['ICV'])
+            st.metric("ICV", indices['ICV'], f"PE: {indices['suma_icv']}")
+            st.caption(f"📊 Percentil: {obtener_percentil(indices['ICV'])}")
+            st.markdown(f"<p style='color: {icv_cat['color']}; font-weight: 600;'>{icv_cat['categoria']}</p>", 
+                       unsafe_allow_html=True)
+            st.progress(obtener_percentil(indices['ICV'])/100)
             
-            st.markdown("**🧩 Visoespacial**")
-            st.metric("IVE", indices['IVE'], delta=f"PE: {indices['suma_ive']}")
-            st.caption(f"Percentil: {obtener_percentil(indices['IVE'])}")
-            st.caption(obtener_categoria(indices['IVE'])['categoria'])
+            st.markdown("### 🧩 Visoespacial")
+            ive_cat = obtener_categoria(indices['IVE'])
+            st.metric("IVE", indices['IVE'], f"PE: {indices['suma_ive']}")
+            st.caption(f"📊 Percentil: {obtener_percentil(indices['IVE'])}")
+            st.markdown(f"<p style='color: {ive_cat['color']}; font-weight: 600;'>{ive_cat['categoria']}</p>", 
+                       unsafe_allow_html=True)
+            st.progress(obtener_percentil(indices['IVE'])/100)
         
         with col2:
-            st.markdown("**🧠 Razonamiento Fluido**")
-            st.metric("IRF", indices['IRF'], delta=f"PE: {indices['suma_irf']}")
-            st.caption(f"Percentil: {obtener_percentil(indices['IRF'])}")
-            st.caption(obtener_categoria(indices['IRF'])['categoria'])
+            st.markdown("### 🧠 Razonamiento Fluido")
+            irf_cat = obtener_categoria(indices['IRF'])
+            st.metric("IRF", indices['IRF'], f"PE: {indices['suma_irf']}")
+            st.caption(f"📊 Percentil: {obtener_percentil(indices['IRF'])}")
+            st.markdown(f"<p style='color: {irf_cat['color']}; font-weight: 600;'>{irf_cat['categoria']}</p>", 
+                       unsafe_allow_html=True)
+            st.progress(obtener_percentil(indices['IRF'])/100)
             
-            st.markdown("**💭 Memoria de Trabajo**")
-            st.metric("IMT", indices['IMT'], delta=f"PE: {indices['suma_imt']}")
-            st.caption(f"Percentil: {obtener_percentil(indices['IMT'])}")
-            st.caption(obtener_categoria(indices['IMT'])['categoria'])
+            st.markdown("### 💭 Memoria de Trabajo")
+            imt_cat = obtener_categoria(indices['IMT'])
+            st.metric("IMT", indices['IMT'], f"PE: {indices['suma_imt']}")
+            st.caption(f"📊 Percentil: {obtener_percentil(indices['IMT'])}")
+            st.markdown(f"<p style='color: {imt_cat['color']}; font-weight: 600;'>{imt_cat['categoria']}</p>", 
+                       unsafe_allow_html=True)
+            st.progress(obtener_percentil(indices['IMT'])/100)
         
         with col3:
-            st.markdown("**⚡ Velocidad Procesamiento**")
-            st.metric("IVP", indices['IVP'], delta=f"PE: {indices['suma_ivp']}")
-            st.caption(f"Percentil: {obtener_percentil(indices['IVP'])}")
-            st.caption(obtener_categoria(indices['IVP'])['categoria'])
+            st.markdown("### ⚡ Velocidad Procesamiento")
+            ivp_cat = obtener_categoria(indices['IVP'])
+            st.metric("IVP", indices['IVP'], f"PE: {indices['suma_ivp']}")
+            st.caption(f"📊 Percentil: {obtener_percentil(indices['IVP'])}")
+            st.markdown(f"<p style='color: {ivp_cat['color']}; font-weight: 600;'>{ivp_cat['categoria']}</p>", 
+                       unsafe_allow_html=True)
+            st.progress(obtener_percentil(indices['IVP'])/100)
             
-            st.markdown("**🏆 CI TOTAL**")
-            st.metric("CIT", indices['CIT'], delta=f"PE: {indices['suma_cit']}")
-            st.caption(f"Percentil: {obtener_percentil(indices['CIT'])}")
-            st.caption(obtener_categoria(indices['CIT'])['categoria'])
+            st.markdown("### 🏆 CI TOTAL")
+            cit_cat = obtener_categoria(indices['CIT'])
+            st.metric("CIT", indices['CIT'], f"PE: {indices['suma_cit']}")
+            st.caption(f"📊 Percentil: {obtener_percentil(indices['CIT'])}")
+            st.markdown(f"<p style='color: {cit_cat['color']}; font-weight: 600;'>{cit_cat['categoria']}</p>", 
+                       unsafe_allow_html=True)
+            st.progress(obtener_percentil(indices['CIT'])/100)
         
         st.markdown("---")
         
-        # Gráfico de índices compuestos
-        st.markdown("### 📈 Perfil de Índices Primarios")
+        # GRÁFICO RADAR DE ÍNDICES
+        st.markdown("## 🎯 Perfil Cognitivo - Vista Radar")
+        
+        fig_radar = go.Figure()
+        
+        indices_nombres = ['ICV', 'IVE', 'IRF', 'IMT', 'IVP']
+        indices_valores = [indices['ICV'], indices['IVE'], indices['IRF'], indices['IMT'], indices['IVP']]
+        
+        fig_radar.add_trace(go.Scatterpolar(
+            r=indices_valores,
+            theta=indices_nombres,
+            fill='toself',
+            fillcolor='rgba(102, 126, 234, 0.3)',
+            line=dict(color='#667eea', width=3),
+            marker=dict(size=10, color='#667eea'),
+            name='Perfil del evaluado'
+        ))
+        
+        # Línea de referencia (media = 100)
+        fig_radar.add_trace(go.Scatterpolar(
+            r=[100, 100, 100, 100, 100],
+            theta=indices_nombres,
+            mode='lines',
+            line=dict(color='#64748b', width=2, dash='dash'),
+            name='Media poblacional (100)'
+        ))
+        
+        fig_radar.update_layout(
+            polar=dict(
+                radialaxis=dict(
+                    visible=True,
+                    range=[40, 160],
+                    tickfont=dict(size=12, color='#1e293b')
+                ),
+                angularaxis=dict(
+                    tickfont=dict(size=14, color='#1e293b', family='Inter')
+                )
+            ),
+            showlegend=True,
+            legend=dict(
+                font=dict(size=12, color='#1e293b'),
+                bgcolor='rgba(255,255,255,0.8)'
+            ),
+            title={
+                'text': "Perfil de Índices Primarios - Vista Multidimensional",
+                'font': {'size': 18, 'color': '#1e293b', 'family': 'Inter'},
+                'x': 0.5,
+                'xanchor': 'center'
+            },
+            height=600,
+            paper_bgcolor='rgba(0,0,0,0)'
+        )
+        
+        st.plotly_chart(fig_radar, use_container_width=True)
+        
+        st.markdown("---")
+        
+        # GRÁFICO DE BARRAS DE ÍNDICES
+        st.markdown("## 📈 Comparación de Índices Compuestos")
         
         indices_labels = ['ICV', 'IVE', 'IRF', 'IMT', 'IVP', 'CIT']
         indices_values = [indices['ICV'], indices['IVE'], indices['IRF'], 
                          indices['IMT'], indices['IVP'], indices['CIT']]
         
-        # Asignar colores según rango
-        colores = []
+        colores_indices = []
         for val in indices_values:
-            if val >= 115:
-                colores.append('green')
-            elif val >= 85:
-                colores.append('blue')
-            else:
-                colores.append('orange')
+            cat = obtener_categoria(val)
+            colores_indices.append(cat['color'])
         
-        fig_indices = go.Figure(data=[
-            go.Bar(
-                x=indices_labels,
-                y=indices_values,
-                marker=dict(color=colores),
-                text=indices_values,
-                textposition='outside'
-            )
-        ])
+        fig_indices = go.Figure()
         
-        fig_indices.add_hline(y=100, line_dash="dash", line_color="gray", 
-                             annotation_text="Media (100)")
-        fig_indices.add_hline(y=85, line_dash="dot", line_color="orange", 
-                             annotation_text="Límite inferior")
-        fig_indices.add_hline(y=115, line_dash="dot", line_color="green", 
-                             annotation_text="Límite superior")
+        fig_indices.add_trace(go.Bar(
+            x=indices_labels,
+            y=indices_values,
+            marker=dict(
+                color=colores_indices,
+                line=dict(color='#1e293b', width=2),
+                pattern_shape=["/", "", "\\", "", "x", ""]
+            ),
+            text=indices_values,
+            textposition='outside',
+            textfont=dict(size=16, color='#1e293b', family='Inter'),
+            hovertemplate='<b>%{x}</b><br>Puntuación: %{y}<br>Percentil: %{customdata}<extra></extra>',
+            customdata=[obtener_percentil(v) for v in indices_values]
+        ))
+        
+        # Zonas de categorización
+        fig_indices.add_hrect(y0=130, y1=160, fillcolor="green", opacity=0.1, 
+                             annotation_text="Muy Superior", annotation_position="top right")
+        fig_indices.add_hrect(y0=120, y1=130, fillcolor="lightgreen", opacity=0.1, 
+                             annotation_text="Superior", annotation_position="top right")
+        fig_indices.add_hrect(y0=110, y1=120, fillcolor="lightblue", opacity=0.1, 
+                             annotation_text="Medio Alto", annotation_position="top right")
+        fig_indices.add_hrect(y0=90, y1=110, fillcolor="lightyellow", opacity=0.1, 
+                             annotation_text="Medio", annotation_position="top right")
+        fig_indices.add_hrect(y0=80, y1=90, fillcolor="lightyellow", opacity=0.1, 
+                             annotation_text="Medio Bajo", annotation_position="top right")
+        fig_indices.add_hrect(y0=70, y1=80, fillcolor="orange", opacity=0.1, 
+                             annotation_text="Límite", annotation_position="top right")
+        
+        # Líneas de referencia
+        fig_indices.add_hline(y=100, line_dash="dash", line_color="#64748b", 
+                             annotation_text="Media (100)", annotation_position="left")
+        fig_indices.add_hline(y=85, line_dash="dot", line_color="#f97316")
+        fig_indices.add_hline(y=115, line_dash="dot", line_color="#10b981")
         
         fig_indices.update_layout(
-            title="Índices Compuestos",
-            xaxis_title="Índices",
+            title={
+                'text': "Índices Compuestos - Puntuaciones Estándar",
+                'font': {'size': 20, 'color': '#1e293b', 'family': 'Inter'},
+                'x': 0.5,
+                'xanchor': 'center'
+            },
+            xaxis_title="Índices WPPSI-IV",
             yaxis_title="Puntuación Compuesta",
-            yaxis=dict(range=[40, 160]),
-            height=450,
-            template="plotly_white"
+            yaxis=dict(range=[40, 160], dtick=10),
+            height=550,
+            template="plotly_white",
+            plot_bgcolor='rgba(0,0,0,0)',
+            paper_bgcolor='rgba(0,0,0,0)',
+            font=dict(family='Inter', color='#1e293b')
         )
         
         st.plotly_chart(fig_indices, use_container_width=True)
         
         st.markdown("---")
         
-        # Fortalezas y debilidades
-        st.markdown("### 💪 Análisis de Fortalezas y Debilidades")
+        # ANÁLISIS DE FORTALEZAS Y DEBILIDADES
+        st.markdown("## 💪 Análisis de Fortalezas y Debilidades")
         
         col1, col2 = st.columns(2)
         
         with col1:
-            st.markdown("#### ✅ Áreas Fuertes (PE ≥ 13)")
-            fortalezas = [(k.replace('_', ' ').title(), v) for k, v in pe_dict.items() if v and v >= 13]
+            st.markdown("### ✅ Áreas de Fortaleza (PE ≥ 13)")
+            fortalezas = [(k.replace('_', ' ').title(), v) for k, v in pe_dict.items() 
+                         if v and v >= 13]
+            
             if fortalezas:
                 for prueba, valor in fortalezas:
                     st.success(f"**{prueba}**: {valor}")
+                    st.progress(valor/19)
             else:
-                st.info("No se identificaron fortalezas significativas")
+                st.info("No se identificaron fortalezas significativas (PE ≥ 13)")
         
         with col2:
-            st.markdown("#### ⚠️ Áreas a Desarrollar (PE ≤ 7)")
-            debilidades = [(k.replace('_', ' ').title(), v) for k, v in pe_dict.items() if v and v <= 7]
+            st.markdown("### ⚠️ Áreas a Desarrollar (PE ≤ 7)")
+            debilidades = [(k.replace('_', ' ').title(), v) for k, v in pe_dict.items() 
+                          if v and v <= 7]
+            
             if debilidades:
                 for prueba, valor in debilidades:
                     st.warning(f"**{prueba}**: {valor}")
+                    st.progress(valor/19)
             else:
-                st.info("No se identificaron debilidades significativas")
+                st.info("No se identificaron debilidades significativas (PE ≤ 7)")
         
         st.markdown("---")
         
-        # Interpretación clínica
-        st.markdown("### 📝 Interpretación Clínica")
+        # INTERPRETACIÓN CLÍNICA
+        st.markdown("## 📝 Interpretación Clínica")
         
         cit_cat = obtener_categoria(indices['CIT'])
         cit_perc = obtener_percentil(indices['CIT'])
         
         interpretacion = f"""
-        **{nombre}** obtuvo un **Coeficiente Intelectual Total (CIT) de {indices['CIT']}**, 
-        clasificado en la categoría **{cit_cat['categoria']}** ({cit_cat['nivel']}). 
+        <div style='background: white; padding: 2rem; border-radius: 15px; border-left: 5px solid {cit_cat['color']}; box-shadow: 0 4px 12px rgba(0,0,0,0.1);'>
+        <h3 style='color: #1e293b;'>Resumen del Funcionamiento Cognitivo</h3>
+        <p style='font-size: 1.1rem; line-height: 1.8; color: #334155;'>
+        <b>{st.session_state['nombre']}</b> obtuvo un <b>Coeficiente Intelectual Total (CIT) de {indices['CIT']}</b>, 
+        clasificado en la categoría <b style='color: {cit_cat['color']};'>{cit_cat['categoria']}</b> ({cit_cat['nivel']}). 
+        </p>
         
-        Esta puntuación se ubica en el **percentil {cit_perc}**, lo que indica que su rendimiento 
+        <p style='font-size: 1.05rem; line-height: 1.8; color: #334155;'>
+        Esta puntuación se ubica en el <b>percentil {cit_perc}</b>, lo que indica que su rendimiento 
         supera al {cit_perc}% de los niños de su edad en la muestra de tipificación.
+        </p>
         
-        El CIT representa una medida global de la capacidad intelectual, evaluada a través de 
-        cinco índices primarios que miden diferentes aspectos del funcionamiento cognitivo:
-        
-        - **Comprensión Verbal (ICV: {indices['ICV']})**: {obtener_categoria(indices['ICV'])['categoria']}
-        - **Visoespacial (IVE: {indices['IVE']})**: {obtener_categoria(indices['IVE'])['categoria']}
-        - **Razonamiento Fluido (IRF: {indices['IRF']})**: {obtener_categoria(indices['IRF'])['categoria']}
-        - **Memoria de Trabajo (IMT: {indices['IMT']})**: {obtener_categoria(indices['IMT'])['categoria']}
-        - **Velocidad de Procesamiento (IVP: {indices['IVP']})**: {obtener_categoria(indices['IVP'])['categoria']}
+        <h4 style='color: #1e293b; margin-top: 1.5rem;'>Análisis por Dominios Cognitivos:</h4>
+        <ul style='font-size: 1rem; line-height: 1.8; color: #334155;'>
+        <li><b>Comprensión Verbal (ICV: {indices['ICV']})</b>: {obtener_categoria(indices['ICV'])['categoria']} - Percentil {obtener_percentil(indices['ICV'])}</li>
+        <li><b>Visoespacial (IVE: {indices['IVE']})</b>: {obtener_categoria(indices['IVE'])['categoria']} - Percentil {obtener_percentil(indices['IVE'])}</li>
+        <li><b>Razonamiento Fluido (IRF: {indices['IRF']})</b>: {obtener_categoria(indices['IRF'])['categoria']} - Percentil {obtener_percentil(indices['IRF'])}</li>
+        <li><b>Memoria de Trabajo (IMT: {indices['IMT']})</b>: {obtener_categoria(indices['IMT'])['categoria']} - Percentil {obtener_percentil(indices['IMT'])}</li>
+        <li><b>Velocidad de Procesamiento (IVP: {indices['IVP']})</b>: {obtener_categoria(indices['IVP'])['categoria']} - Percentil {obtener_percentil(indices['IVP'])}</li>
+        </ul>
+        </div>
         """
         
-        st.info(interpretacion)
+        st.markdown(interpretacion, unsafe_allow_html=True)
         
-        st.markdown("---")
+    else:
+        st.warning("⚠️ Por favor, complete los datos en la pestaña 'Datos del Paciente' primero")
+
+with tab3:
+    if 'datos_guardados' in st.session_state and st.session_state['datos_guardados']:
+        st.markdown("## 📄 Generar Informe PDF Profesional")
         
-        # Generar PDF
-        st.markdown("### 📄 Descargar Informe Completo")
+        st.info("💡 El informe incluirá todos los análisis, gráficos y tablas generados")
         
-        datos_paciente = {
-            'nombre': nombre,
-            'sexo': sexo,
-            'fecha_nacimiento': fecha_nacimiento.strftime('%d/%m/%Y'),
-            'fecha_aplicacion': fecha_aplicacion.strftime('%d/%m/%Y'),
-            'edad_texto': edad_texto,
-            'lugar': lugar,
-            'examinador': examinador,
-            'puntuaciones': puntuaciones
-        }
-        
-        pdf_buffer = generar_pdf(datos_paciente, pe_dict, indices)
-        
-        st.download_button(
-            label="📥 DESCARGAR INFORME EN PDF",
-            data=pdf_buffer,
-            file_name=f"Informe_WPPSI-IV_{nombre.replace(' ', '_')}_{fecha_aplicacion.strftime('%Y%m%d')}.pdf",
-            mime="application/pdf",
-            type="primary",
-            use_container_width=True
-        )
-        
-        st.success("✅ ¡Informe completo! Puedes descargarlo en PDF para imprimirlo o enviarlo.")
+        if st.button("📥 DESCARGAR INFORME EN PDF", type="primary"):
+            years, months, days = calcular_edad(
+                st.session_state['fecha_nac'],
+                st.session_state['fecha_apl']
+            )
+            edad_texto = f"{years} años, {months} meses, {days} días"
+            
+            datos_paciente = {
+                'nombre': st.session_state['nombre'],
+                'sexo': st.session_state['sexo'],
+                'fecha_nacimiento': st.session_state['fecha_nac'].strftime('%d/%m/%Y'),
+                'fecha_aplicacion': st.session_state['fecha_apl'].strftime('%d/%m/%Y'),
+                'edad_texto': edad_texto,
+                'lugar': st.session_state['lugar'],
+                'examinador': st.session_state['examinador'],
+                'puntuaciones': st.session_state['puntuaciones']
+            }
+            
+            pdf_buffer = generar_pdf(datos_paciente, st.session_state['pe_dict'], 
+                                    st.session_state['indices'])
+            
+            st.download_button(
+                label="📥 DESCARGAR INFORME COMPLETO",
+                data=pdf_buffer,
+                file_name=f"Informe_WPPSI-IV_{st.session_state['nombre'].replace(' ', '_')}_{st.session_state['fecha_apl'].strftime('%Y%m%d')}.pdf",
+                mime="application/pdf",
+                type="primary"
+            )
+            
+            st.success("✅ ¡Listo para descargar!")
+    else:
+        st.warning("⚠️ Complete los datos primero")
 
 # Footer
 st.markdown("---")
 st.markdown("""
-    <div style='text-align: center; color: #6b7280; padding: 20px;'>
-        <p><b>Generador de Informes WPPSI-IV</b></p>
-        <p>Herramienta profesional para psicopedagogos y psicólogos</p>
-        <p style='font-size: 0.8em;'>Desarrollado con ❤️ para facilitar la evaluación psicopedagógica</p>
+    <div style='text-align: center; color: #64748b; padding: 2rem; background: white; border-radius: 15px; margin-top: 2rem;'>
+        <h3 style='color: #1e293b;'>Generador de Informes WPPSI-IV</h3>
+        <p style='font-size: 1rem;'>Herramienta profesional para evaluación psicopedagógica</p>
+        <p style='font-size: 0.9rem;'>Desarrollado con ❤️ para psicólogos y psicopedagogos</p>
     </div>
 """, unsafe_allow_html=True)
