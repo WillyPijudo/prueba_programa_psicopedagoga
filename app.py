@@ -1162,7 +1162,6 @@ def crear_grafico_perfil_escalares_ultra(pe_dict: Dict) -> go.Figure:
     )
     
     return fig
-
 def crear_grafico_indices_compuestos_ultra(indices: Dict) -> go.Figure:
     """Gráfico ultra profesional de índices compuestos con barras"""
     datos = {k: v for k, v in indices.items() if v is not None}
@@ -1227,9 +1226,12 @@ def crear_grafico_indices_compuestos_ultra(indices: Dict) -> go.Figure:
         yaxis=dict(
             range=[40, 165],
             dtick=20,
-            title="<b>Puntuación Compuesta (PC)</b>",
+            # CORREGIDO: titlefont eliminado, estructura correcta usada
+            title=dict(
+                text="<b>Puntuación Compuesta (PC)</b>",
+                font=dict(size=15, family='Inter')
+            ),
             gridcolor='rgba(0,0,0,0.06)',
-            titlefont=dict(size=15, family='Inter', weight='bold'),
             tickfont=dict(size=13)
         ),
         xaxis=dict(
@@ -1278,7 +1280,7 @@ def crear_grafico_radar_cognitivo(indices: Dict) -> go.Figure:
         fillcolor='rgba(139, 21, 56, 0.30)',
         line=dict(color='#8B1538', width=5),
         marker=dict(size=14, color='#8B1538', symbol='circle',
-                   line=dict(width=3, color='white')),
+                    line=dict(width=3, color='white')),
         name='Evaluado',
         hovertemplate='<b>%{theta}</b><br>PC: %{r}<extra></extra>'
     ))
@@ -1309,7 +1311,7 @@ def crear_grafico_radar_cognitivo(indices: Dict) -> go.Figure:
             radialaxis=dict(
                 visible=True,
                 range=[40, 160],
-                tickfont=dict(size=12, weight='bold'),
+                tickfont=dict(size=12),
                 gridcolor='rgba(0,0,0,0.1)',
                 showticklabels=True,
                 ticks='outside',
@@ -1317,7 +1319,7 @@ def crear_grafico_radar_cognitivo(indices: Dict) -> go.Figure:
                 dtick=20
             ),
             angularaxis=dict(
-                tickfont=dict(size=13, family='Poppins', weight='bold'),
+                tickfont=dict(size=13, family='Poppins'),
                 gridcolor='rgba(0,0,0,0.1)',
                 linecolor='rgba(0,0,0,0.2)'
             ),
@@ -1338,7 +1340,7 @@ def crear_grafico_radar_cognitivo(indices: Dict) -> go.Figure:
             y=-0.2,
             xanchor="center",
             x=0.5,
-            font=dict(size=13, family='Inter', weight='bold'),
+            font=dict(size=13, family='Inter'),
             bgcolor='rgba(255,255,255,0.8)',
             bordercolor='rgba(0,0,0,0.1)',
             borderwidth=1
@@ -1385,7 +1387,7 @@ def crear_grafico_comparacion_indices(indices: Dict) -> go.Figure:
         ),
         text=[f"+{d:.1f}" if d >= 0 else f"{d:.1f}" for d in diferencias],
         textposition='outside',
-        textfont=dict(size=15, weight='bold', family='Poppins'),
+        textfont=dict(size=15, family='Poppins'),
         name='Diferencia con media personal'
     ))
     
@@ -1405,16 +1407,19 @@ def crear_grafico_comparacion_indices(indices: Dict) -> go.Figure:
             'font': {'size': 22, 'family': 'Poppins', 'color': '#2c3e50'}
         },
         yaxis=dict(
-            title="<b>Diferencia respecto a la media personal</b>",
+            # CORREGIDO: titlefont eliminado, estructura correcta usada
+            title=dict(
+                text="<b>Diferencia respecto a la media personal</b>",
+                font=dict(size=14)
+            ),
             gridcolor='rgba(0,0,0,0.06)',
-            titlefont=dict(size=14, weight='bold'),
             zeroline=True,
             zerolinecolor='#34495e',
             zerolinewidth=4,
             tickfont=dict(size=12)
         ),
         xaxis=dict(
-            tickfont=dict(size=13, weight='bold'),
+            tickfont=dict(size=13),
             tickangle=-15
         ),
         height=500,
@@ -1475,8 +1480,7 @@ def crear_grafico_distribucion_normal(ci: int) -> go.Figure:
         annotation_position="top",
         annotation_font_size=15,
         annotation_font_color="#8B1538",
-        annotation_font_family="Poppins",
-        annotation_font_weight="bold"
+        annotation_font_family="Poppins"
     )
     
     # Líneas de referencia (DE)
@@ -1507,16 +1511,22 @@ def crear_grafico_distribucion_normal(ci: int) -> go.Figure:
             'font': {'size': 22, 'family': 'Poppins', 'color': '#2c3e50'}
         },
         xaxis=dict(
-            title="<b>Coeficiente Intelectual (CI)</b>",
+            # CORREGIDO: titlefont eliminado
+            title=dict(
+                text="<b>Coeficiente Intelectual (CI)</b>",
+                font=dict(size=14)
+            ),
             range=[40, 160],
             gridcolor='rgba(0,0,0,0.05)',
-            titlefont=dict(size=14, weight='bold'),
             tickfont=dict(size=12)
         ),
         yaxis=dict(
-            title="<b>Densidad de Probabilidad</b>",
+            # CORREGIDO: titlefont eliminado
+            title=dict(
+                text="<b>Densidad de Probabilidad</b>",
+                font=dict(size=14)
+            ),
             gridcolor='rgba(0,0,0,0.05)',
-            titlefont=dict(size=14, weight='bold'),
             tickfont=dict(size=11),
             showticklabels=True
         ),
@@ -1529,8 +1539,7 @@ def crear_grafico_distribucion_normal(ci: int) -> go.Figure:
     )
     
     return fig
-
-# ═══════════════════════════════════════════════════════════════════════════════
+#  ════════════════════════════════════════════════════════════════════════
 # WPPSI-IV PARTE 3/4: INTERFAZ DE USUARIO - PASOS 1, 2 Y 3
 # ═══════════════════════════════════════════════════════════════════════════════
 
@@ -2846,4 +2855,5 @@ if st.session_state.datos_completos:
     st.sidebar.success("✅ Sistema listo - Evaluación completa")
 else:
     st.sidebar.info(f"ℹ️ En proceso - Paso {st.session_state.paso_actual}/5")
+
 
