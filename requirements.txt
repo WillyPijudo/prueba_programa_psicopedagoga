@@ -1,6 +1,38 @@
+# ═══════════════════════════════════════════════════════════════════
+# REQUIREMENTS.TXT - WPPSI-IV PROFESSIONAL ULTRA SYSTEM v7.0
+# Sistema Integral de Evaluación Psicopedagógica
+# Desarrollado para Daniela ❤️
+# ═══════════════════════════════════════════════════════════════════
+
+# Framework Principal
 streamlit>=1.32.0
+
+# Análisis y Manipulación de Datos
 pandas>=2.2.0
-plotly>=5.19.0
 numpy>=1.26.0
+scipy>=1.12.0
+
+# Visualización de Datos
+plotly>=5.19.0
+
+# Generación de PDFs Profesionales
 reportlab>=4.0.0
-scipy>=1.10.0
+
+# Opcional pero recomendado para mejor rendimiento
+openpyxl>=3.1.2  # Para exportar a Excel si se necesita
+Pillow>=10.2.0   # Para procesamiento de imágenes en PDF
+python-dateutil>=2.8.2  # Para manejo avanzado de fechas
+
+# ═══════════════════════════════════════════════════════════════════
+# NOTAS DE INSTALACIÓN:
+# 
+# 1. Instalar todas las dependencias:
+#    pip install -r requirements.txt
+#
+# 2. Ejecutar la aplicación:
+#    streamlit run app.py
+#
+# 3. Abrir en navegador:
+#    La app se abrirá automáticamente en http://localhost:8501
+#
+# ═══════════════════════════════════════════════════════════════════
