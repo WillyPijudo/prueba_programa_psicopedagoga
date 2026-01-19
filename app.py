@@ -1815,8 +1815,10 @@ elif paso == 3:
 # ═══════════════════════════════════════════════════════════════════════════════
 # WPPSI-IV PARTE 4/4 FINAL: PASOS 4 Y 5 + PDF + FOOTER
 # ═══════════════════════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════════════════════
+# PASO 4: RESULTADOS Y ANÁLISIS (CORREGIDO CON KEYS ÚNICAS)
+# ═══════════════════════════════════════════════════════════════════════════════
 
-# PASO 4: RESULTADOS Y ANÁLISIS
 elif paso == 4:
     if not st.session_state.datos_completos:
         st.warning("⚠️ Debe completar los pasos anteriores primero")
@@ -1936,7 +1938,8 @@ elif paso == 4:
             # Gráfico de perfil escalar
             fig_pe = crear_grafico_perfil_escalares_ultra(resultados['pe'])
             if fig_pe:
-                st.plotly_chart(fig_pe, use_container_width=True)
+                # CORREGIDO: Agregada key única
+                st.plotly_chart(fig_pe, use_container_width=True, key="grafico_perfil_escalar_main")
             
             st.markdown("---")
             
@@ -1946,26 +1949,30 @@ elif paso == 4:
             with col_g1:
                 fig_indices = crear_grafico_indices_compuestos_ultra(resultados['indices_primarios'])
                 if fig_indices:
-                    st.plotly_chart(fig_indices, use_container_width=True)
+                    # CORREGIDO: Agregada key única
+                    st.plotly_chart(fig_indices, use_container_width=True, key="grafico_indices_main")
             
             with col_g2:
                 fig_comparacion = crear_grafico_comparacion_indices(resultados['indices_primarios'])
                 if fig_comparacion:
-                    st.plotly_chart(fig_comparacion, use_container_width=True)
+                    # CORREGIDO: Agregada key única
+                    st.plotly_chart(fig_comparacion, use_container_width=True, key="grafico_comparacion_main")
             
             st.markdown("---")
             
             # Gráfico radar
             fig_radar = crear_grafico_radar_cognitivo(resultados['indices_primarios'])
             if fig_radar:
-                st.plotly_chart(fig_radar, use_container_width=True)
+                # CORREGIDO: Agregada key única
+                st.plotly_chart(fig_radar, use_container_width=True, key="grafico_radar_main")
             
             # Gráfico de distribución normal
             if resultados.get('cit'):
                 st.markdown("---")
                 fig_dist = crear_grafico_distribucion_normal(resultados['cit'])
                 if fig_dist:
-                    st.plotly_chart(fig_dist, use_container_width=True)
+                    # CORREGIDO: Agregada key única
+                    st.plotly_chart(fig_dist, use_container_width=True, key="grafico_distribucion_main")
         
         with tab_comparativo:
             st.markdown("### 🔍 Análisis de Fortalezas y Debilidades")
@@ -2204,6 +2211,7 @@ elif paso == 4:
             if st.button("➡️ GENERAR INFORME PDF", type="primary", use_container_width=True, key="btn_ir_pdf"):
                 st.session_state.paso_actual = 5
                 st.rerun()
+              
 # ═══════════════════════════════════════════════════════════════════════════════
 # PASO 5: GENERAR PDF REAL
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -2356,6 +2364,7 @@ if st.session_state.datos_completos:
     st.sidebar.success("✅ Sistema listo - Evaluación completa")
 else:
     st.sidebar.info(f"ℹ️ En proceso - Paso {st.session_state.paso_actual}/5")
+
 
 
 
