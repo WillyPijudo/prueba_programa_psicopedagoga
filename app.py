@@ -1790,6 +1790,7 @@ def crear_grafico_comparacion_indices(indices):
     )
     
     return fig
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # CONTINUACIÓN DEL CÓDIGO WPPSI-IV ULTRA COMPLETO - PARTE 2
 # Copie este código DESPUÉS del código de la Parte 1
@@ -2700,6 +2701,7 @@ elif paso_actual == 3:
                     
                     st.session_state.paso_actual = 4
                     st.rerun()
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # CONTINUACIÓN DEL CÓDIGO WPPSI-IV ULTRA COMPLETO - PARTE 3 FINAL
 # Copie este código DESPUÉS de la Parte 2
@@ -3295,8 +3297,3 @@ if st.session_state.datos_completos:
     st.sidebar.success("✅ Sistema listo para generar informes")
 else:
     st.sidebar.info("ℹ️ Complete los pasos para generar informes")
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# FIN DEL CÓDIGO - SISTEMA WPPSI-IV ULTRA COMPLETO
-# Total: 2500+ líneas de código profesional
-# ═══════════════════════════════════════════════════════════════════════════════
