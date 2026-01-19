@@ -3,7 +3,6 @@
 # Sistema Integral de Evaluación Psicopedagógica
 # Desarrollado para Daniela ❤️
 # ═══════════════════════════════════════════════════════════════════
-
 # Framework Principal
 streamlit>=1.32.0
 
@@ -18,11 +17,13 @@ plotly>=5.19.0
 # Generación de PDFs Profesionales
 reportlab>=4.0.0
 
-# Opcional pero recomendado para mejor rendimiento
-openpyxl>=3.1.2  # Para exportar a Excel si se necesita
-Pillow>=10.2.0   # Para procesamiento de imágenes en PDF
-python-dateutil>=2.8.2  # Para manejo avanzado de fechas
-kaleido
+# Motor de exportación de imágenes (VERSIÓN FIJA ESTABLE)
+kaleido==0.2.1
+
+# Utilidades extra
+openpyxl>=3.1.2
+Pillow>=10.2.0
+python-dateutil>=2.8.2
 
 # ═══════════════════════════════════════════════════════════════════
 # NOTAS DE INSTALACIÓN:
@@ -37,4 +38,5 @@ kaleido
 #    La app se abrirá automáticamente en http://localhost:8501
 #
 # ═══════════════════════════════════════════════════════════════════
+
 
