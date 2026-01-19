@@ -1140,7 +1140,6 @@ def crear_grafico_perfil_escalares_ultra(pe_dict: Dict) -> go.Figure:
         yaxis=dict(
             range=[0, 20],
             dtick=2,
-            # CORREGIDO: titlefont ya no se usa, se pasa font dentro de title
             title=dict(
                 text="<b>Puntuación Escalar (PE)</b>",
                 font=dict(size=15, family='Inter')
@@ -1151,7 +1150,6 @@ def crear_grafico_perfil_escalares_ultra(pe_dict: Dict) -> go.Figure:
         xaxis=dict(
             tickangle=-45,
             gridcolor='rgba(0,0,0,0.04)',
-            # CORREGIDO: Eliminado titlefont inválido
             tickfont=dict(size=12)
         ),
         height=600,
@@ -1164,7 +1162,8 @@ def crear_grafico_perfil_escalares_ultra(pe_dict: Dict) -> go.Figure:
     )
     
     return fig
-  def crear_grafico_indices_compuestos_ultra(indices: Dict) -> go.Figure:
+
+def crear_grafico_indices_compuestos_ultra(indices: Dict) -> go.Figure:
     """Gráfico ultra profesional de índices compuestos con barras"""
     datos = {k: v for k, v in indices.items() if v is not None}
     
@@ -2847,3 +2846,4 @@ if st.session_state.datos_completos:
     st.sidebar.success("✅ Sistema listo - Evaluación completa")
 else:
     st.sidebar.info(f"ℹ️ En proceso - Paso {st.session_state.paso_actual}/5")
+
