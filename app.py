@@ -600,8 +600,8 @@ def crear_grafico_perfil_escalares(pe_dict):
         yaxis=dict(
             range=[0, 20],
             dtick=1,
-            title='Puntuación Escalar (PE)',
-            titlefont=dict(size=14, color='#212529'),
+            # CORRECCIÓN DE PLOTLY: titlefont ya no se usa, se usa title como diccionario
+            title=dict(text='Puntuación Escalar (PE)', font=dict(size=14, color='#212529')),
             tickfont=dict(size=12, color='#212529'),
             showgrid=True,
             gridcolor='rgba(0,0,0,0.05)'
@@ -674,15 +674,15 @@ def crear_grafico_perfil_compuestas(indices):
             'xanchor': 'center'
         },
         xaxis=dict(
-            title='Índices WPPSI-IV',
-            titlefont=dict(size=14, color='#212529'),
+            # CORRECCIÓN DE PLOTLY: Sintaxis moderna para títulos de ejes
+            title=dict(text='Índices WPPSI-IV', font=dict(size=14, color='#212529')),
             tickfont=dict(size=13, color='#212529')
         ),
         yaxis=dict(
             range=[40, 160],
             dtick=10,
-            title='Puntuación Compuesta',
-            titlefont=dict(size=14, color='#212529'),
+            # CORRECCIÓN DE PLOTLY: Sintaxis moderna para títulos de ejes
+            title=dict(text='Puntuación Compuesta', font=dict(size=14, color='#212529')),
             tickfont=dict(size=12, color='#212529'),
             showgrid=True,
             gridcolor='rgba(0,0,0,0.05)'
@@ -761,16 +761,16 @@ def crear_curva_normal(cit_value):
         xaxis=dict(
             range=[40, 160],
             dtick=10,
-            title='Puntuación Compuesta',
-            titlefont=dict(size=14, color='#212529'),
+            # CORRECCIÓN DE PLOTLY: Sintaxis moderna para títulos de ejes
+            title=dict(text='Puntuación Compuesta', font=dict(size=14, color='#212529')),
             tickfont=dict(size=12, color='#212529'),
             showgrid=True,
             gridcolor='rgba(0,0,0,0.05)'
         ),
         yaxis=dict(
             showticklabels=False,
-            title='Densidad de Probabilidad',
-            titlefont=dict(size=14, color='#212529'),
+            # CORRECCIÓN DE PLOTLY: Sintaxis moderna para títulos de ejes
+            title=dict(text='Densidad de Probabilidad', font=dict(size=14, color='#212529')),
             showgrid=False
         ),
         height=450,
@@ -1016,12 +1016,10 @@ with tab2:
             'cancelacion': 'Cancelación',
             'rompecabezas': 'Rompecabezas'
         }
-
-# ... código anterior ...
         
         datos_conversion = []
         for key, nombre_prueba in pruebas_nombres.items():
-            # CORRECCIÓN: Cambiamos el nombre de variable 'pd' a 'valor_pd'
+            # CORRECCIÓN DE PANDAS: Usamos valor_pd en lugar de pd
             valor_pd = pd_dict.get(key, '-') 
             valor_pe = pe_dict.get(key, '-')
             
@@ -1244,4 +1242,3 @@ st.markdown("""
         </p>
     </div>
 """, unsafe_allow_html=True)
-
