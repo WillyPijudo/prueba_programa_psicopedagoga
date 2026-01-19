@@ -2213,7 +2213,7 @@ elif paso == 4:
                 st.rerun()
               
 # ═══════════════════════════════════════════════════════════════════════════════
-# PASO 5: GENERAR PDF REAL
+# PASO 5: GENERAR PDF PROFESIONAL COMPLETO (CON GRÁFICOS Y TABLAS)
 # ═══════════════════════════════════════════════════════════════════════════════
 
 elif paso == 5:
@@ -2223,73 +2223,224 @@ elif paso == 5:
             st.session_state.paso_actual = 1
             st.rerun()
     else:
-        st.markdown("## <span class='step-number'>5</span> Generación de Informe", unsafe_allow_html=True)
-        st.success("✅ Evaluación lista para imprimir.")
+        st.markdown("## <span class='step-number'>5</span> Generación de Informe Profesional", unsafe_allow_html=True)
+        st.markdown("---")
+        
+        st.success("✅ **Evaluación lista para exportar**")
+        st.info("El informe incluirá: Datos, Tablas de Puntuaciones, Perfiles Gráficos, Índices y Recomendaciones.")
 
-        if st.button("📥 GENERAR Y DESCARGAR INFORME PDF", type="primary", use_container_width=True):
-            with st.spinner("Generando PDF válido..."):
+        # --- FUNCIÓN AUXILIAR PARA CONVERTIR PLOTLY A IMAGEN REPORTLAB ---
+        def plotly_a_imagen_reportlab(fig, ancho=450, alto=300):
+            """Convierte figura Plotly a objeto Image de ReportLab"""
+            if fig is None: return None
+            try:
+                # Convertir a bytes png
+                img_bytes = fig.to_image(format="png", width=ancho*2, height=alto*2, scale=2)
+                img_buffer = io.BytesIO(img_bytes)
+                # Crear imagen ReportLab
+                rl_img = RLImage(img_buffer, width=ancho, height=alto)
+                return rl_img
+            except Exception as e:
+                return None
+
+        # --- BOTÓN DE GENERACIÓN ---
+        if st.button("📥 GENERAR Y DESCARGAR INFORME COMPLETO", type="primary", use_container_width=True, key="btn_generar_pdf_full"):
+            with st.spinner("⏳ Generando informe de alta calidad (esto puede tardar unos segundos)..."):
                 try:
-                    # 1. Crear Buffer
+                    # 1. PREPARACIÓN DEL DOCUMENTO
                     buffer = io.BytesIO()
+                    doc = SimpleDocTemplate(buffer, pagesize=A4, 
+                                          rightMargin=2*cm, leftMargin=2*cm, 
+                                          topMargin=2*cm, bottomMargin=2*cm)
                     
-                    # 2. Configurar Documento ReportLab
-                    doc = SimpleDocTemplate(buffer, pagesize=A4)
                     elements = []
                     styles = getSampleStyleSheet()
                     
-                    # 3. Agregar Contenido Real
-                    # Título
-                    elements.append(Paragraph("INFORME PSICOPEDAGÓGICO WPPSI-IV", styles['Title']))
-                    elements.append(Spacer(1, 12))
-                    
-                    # Datos
-                    datos = st.session_state.nombre_paciente
-                    edad = st.session_state.analisis_completo['datos_personales'].get('edad_texto', 'N/A')
-                    texto_datos = f"<b>Nombre:</b> {datos}<br/><b>Edad:</b> {edad}<br/><b>Fecha:</b> {date.today()}"
-                    elements.append(Paragraph(texto_datos, styles['Normal']))
-                    elements.append(Spacer(1, 20))
-                    
-                    # Tabla de Resultados
-                    data_tabla = [["Indice", "Puntuación", "Categoría"]]
-                    for k, v in st.session_state.indices_primarios.items():
-                        cat = st.session_state.analisis_completo['categorias'][k]['categoria']
-                        data_tabla.append([k, str(v), cat])
-                        
-                    t = Table(data_tabla)
-                    t.setStyle(TableStyle([
-                        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
-                        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-                        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                        ('GRID', (0, 0), (-1, -1), 1, colors.black)
-                    ]))
-                    elements.append(t)
-                    elements.append(Spacer(1, 20))
-                    
-                    # Interpretación
-                    elements.append(Paragraph("<b>Interpretación Clínica:</b>", styles['Heading2']))
-                    if st.session_state.analisis_completo.get('cit'):
-                        cit = st.session_state.analisis_completo['cit']
-                        desc = st.session_state.analisis_completo['categorias']['CIT']['descripcion']
-                        elements.append(Paragraph(f"El paciente obtuvo un CIT de {cit}. {desc}", styles['Normal']))
+                    # Estilos personalizados
+                    estilo_titulo = ParagraphStyle('Titulo', parent=styles['Title'], fontSize=24, textColor=colors.HexColor('#8B1538'), spaceAfter=20)
+                    estilo_h1 = ParagraphStyle('H1', parent=styles['Heading1'], fontSize=16, textColor=colors.HexColor('#2c3e50'), spaceBefore=15, spaceAfter=10)
+                    estilo_h2 = ParagraphStyle('H2', parent=styles['Heading2'], fontSize=14, textColor=colors.HexColor('#8B1538'), spaceBefore=10, spaceAfter=8)
+                    estilo_normal = ParagraphStyle('Norm', parent=styles['Normal'], fontSize=11, leading=14, spaceAfter=6)
+                    estilo_dato = ParagraphStyle('Dato', parent=styles['Normal'], fontSize=10, textColor=colors.grey)
 
-                    # 4. Construir PDF
+                    # Recuperar datos
+                    res = st.session_state.analisis_completo
+                    dp = res['datos_personales']
+
+                    # 2. ENCABEZADO Y DATOS DE FILIACIÓN
+                    elements.append(Paragraph("INFORME PSICOPEDAGÓGICO WPPSI-IV", estilo_titulo))
+                    elements.append(Paragraph(f"Fecha de emisión: {datetime.now().strftime('%d/%m/%Y')}", estilo_dato))
+                    elements.append(Spacer(1, 10))
+
+                    # Tabla de Datos Personales
+                    data_filiacion = [
+                        [Paragraph("<b>Nombre:</b>", estilo_normal), Paragraph(dp['nombre'], estilo_normal),
+                         Paragraph("<b>F. Nacimiento:</b>", estilo_normal), Paragraph(dp['fecha_nacimiento'], estilo_normal)],
+                        [Paragraph("<b>Edad:</b>", estilo_normal), Paragraph(dp['edad_texto'], estilo_normal),
+                         Paragraph("<b>Sexo:</b>", estilo_normal), Paragraph(dp['sexo'], estilo_normal)],
+                        [Paragraph("<b>F. Evaluación:</b>", estilo_normal), Paragraph(dp['fecha_evaluacion'], estilo_normal),
+                         Paragraph("<b>Examinador:</b>", estilo_normal), Paragraph(dp['examinador'], estilo_normal)]
+                    ]
+                    
+                    t_filiacion = Table(data_filiacion, colWidths=[2.5*cm, 6*cm, 3*cm, 5*cm])
+                    t_filiacion.setStyle(TableStyle([
+                        ('GRID', (0,0), (-1,-1), 0.5, colors.lightgrey),
+                        ('BACKGROUND', (0,0), (0,-1), colors.whitesmoke),
+                        ('BACKGROUND', (2,0), (2,-1), colors.whitesmoke),
+                        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+                        ('PADDING', (0,0), (-1,-1), 6),
+                    ]))
+                    elements.append(t_filiacion)
+                    elements.append(Spacer(1, 20))
+
+                    # 3. RESULTADOS CUANTITATIVOS (TABLAS)
+                    elements.append(Paragraph("1. Perfil de Puntuaciones", estilo_h1))
+                    
+                    # Tabla de Índices
+                    elements.append(Paragraph("Resumen de Índices Compuestos", estilo_h2))
+                    data_indices = [["Índice", "Puntuación", "Percentil", "Intervalo (90%)", "Categoría"]]
+                    
+                    # Añadir CIT primero si existe
+                    if res.get('cit'):
+                        cat = res['categorias']['CIT']
+                        ic = res['intervalos_confianza']['CIT']
+                        data_indices.append([
+                            "CI TOTAL", str(res['cit']), str(res['percentiles']['CIT']), 
+                            f"{ic[0]}-{ic[1]}", cat['categoria']
+                        ])
+
+                    # Añadir resto de índices
+                    for k, v in res['indices_primarios'].items():
+                        if k != 'CIT' and v is not None:
+                            cat = res['categorias'][k]
+                            ic = res['intervalos_confianza'][k]
+                            data_indices.append([
+                                k, str(v), str(res['percentiles'][k]), 
+                                f"{ic[0]}-{ic[1]}", cat['categoria']
+                            ])
+                    
+                    t_indices = Table(data_indices, colWidths=[4*cm, 2.5*cm, 2.5*cm, 3.5*cm, 4*cm])
+                    t_indices.setStyle(TableStyle([
+                        ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#8B1538')),
+                        ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
+                        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+                        ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+                        ('BOTTOMPADDING', (0,0), (-1,0), 10),
+                        ('GRID', (0,0), (-1,-1), 1, colors.grey),
+                        ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.whitesmoke, colors.white])
+                    ]))
+                    elements.append(t_indices)
+                    elements.append(Spacer(1, 15))
+
+                    # Tabla de Subpruebas
+                    elements.append(Paragraph("Puntuaciones de Subpruebas", estilo_h2))
+                    data_pruebas = [["Subprueba", "Puntuación Directa", "Puntuación Escalar", "Clasificación"]]
+                    
+                    for k, v in res['pe'].items():
+                        nombre = BaremosWPPSIUltra.PRUEBAS_INFO[k]['nombre']
+                        pd_val = res['pd'][k]
+                        clasif = BaremosWPPSIUltra.clasificar_pe(v)
+                        data_pruebas.append([nombre, str(pd_val), str(v), clasif])
+
+                    t_pruebas = Table(data_pruebas, colWidths=[6*cm, 3.5*cm, 3.5*cm, 3.5*cm])
+                    t_pruebas.setStyle(TableStyle([
+                        ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#2c3e50')),
+                        ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
+                        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+                        ('ALIGN', (0,0), (0,-1), 'LEFT'),
+                        ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+                        ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
+                    ]))
+                    elements.append(t_pruebas)
+                    elements.append(PageBreak())
+
+                    # 4. ANÁLISIS GRÁFICO
+                    elements.append(Paragraph("2. Análisis Gráfico", estilo_h1))
+                    
+                    # Generar gráficos en memoria
+                    fig_perfil = crear_grafico_perfil_escalares_ultra(res['pe'])
+                    img_perfil = plotly_a_imagen_reportlab(fig_perfil, ancho=500, alto=250)
+                    
+                    fig_radar = crear_grafico_radar_cognitivo(res['indices_primarios'])
+                    img_radar = plotly_a_imagen_reportlab(fig_radar, ancho=350, alto=350)
+
+                    if img_perfil:
+                        elements.append(Paragraph("Perfil de Puntuaciones Escalares", estilo_h2))
+                        elements.append(img_perfil)
+                        elements.append(Spacer(1, 15))
+                    
+                    if img_radar:
+                        elements.append(Paragraph("Mapa Cognitivo (Radar)", estilo_h2))
+                        # Centrar el radar
+                        t_radar = Table([[img_radar]], colWidths=[16*cm])
+                        t_radar.setStyle(TableStyle([('ALIGN', (0,0), (-1,-1), 'CENTER')]))
+                        elements.append(t_radar)
+
+                    elements.append(PageBreak())
+
+                    # 5. INTERPRETACIÓN Y RECOMENDACIONES
+                    elements.append(Paragraph("3. Interpretación y Recomendaciones", estilo_h1))
+                    
+                    # Interpretación CIT
+                    if res.get('cit'):
+                        elements.append(Paragraph("Capacidad Intelectual Global (CIT)", estilo_h2))
+                        desc_cit = res['categorias']['CIT']['descripcion']
+                        texto_cit = f"El evaluado obtuvo un CIT de {res['cit']}, situándose en el percentil {res['percentiles']['CIT']}. Esto corresponde a la categoría {res['categorias']['CIT']['categoria']}. {desc_cit}"
+                        elements.append(Paragraph(texto_cit, estilo_normal))
+                        elements.append(Spacer(1, 10))
+
+                    # Fortalezas y Debilidades
+                    elements.append(Paragraph("Análisis de Fortalezas y Debilidades", estilo_h2))
+                    if res['fortalezas']:
+                        elements.append(Paragraph("<b>Fortalezas (PE ≥ 13):</b>", estilo_normal))
+                        for f in res['fortalezas']:
+                            elements.append(Paragraph(f"• {f['prueba']}: {f['descripcion']}", estilo_normal))
+                    else:
+                        elements.append(Paragraph("No se observan fortalezas normativas significativas.", estilo_normal))
+                    
+                    elements.append(Spacer(1, 5))
+                    
+                    if res['debilidades']:
+                        elements.append(Paragraph("<b>Áreas de Mejora (PE ≤ 7):</b>", estilo_normal))
+                        for d in res['debilidades']:
+                            elements.append(Paragraph(f"• {d['prueba']}: {d['descripcion']}", estilo_normal))
+                    else:
+                        elements.append(Paragraph("No se observan debilidades normativas significativas.", estilo_normal))
+
+                    elements.append(Spacer(1, 15))
+
+                    # Recomendaciones
+                    elements.append(Paragraph("Recomendaciones Sugeridas", estilo_h2))
+                    if res['recomendaciones']:
+                        for rec in res['recomendaciones']:
+                            elements.append(Paragraph(f"• {rec}", estilo_normal))
+                    else:
+                        elements.append(Paragraph("Se sugiere continuar con la estimulación cognitiva habitual.", estilo_normal))
+
+                    # 6. CONSTRUCCIÓN
                     doc.build(elements)
                     
-                    # 5. Preparar descarga
                     buffer.seek(0)
                     st.session_state.buffer_pdf = buffer
+                    st.session_state.pdf_generado = True
                     
-                    st.download_button(
-                        label="⬇️ DESCARGAR ARCHIVO AHORA",
-                        data=buffer,
-                        file_name=f"Informe_{st.session_state.nombre_paciente}.pdf",
-                        mime="application/pdf",
-                        type="secondary"
-                    )
+                    st.success("✅ Informe PDF generado exitosamente")
                     st.balloons()
-                    
+
+                    # Botón de descarga
+                    nombre_archivo = f"Informe_WPPSI_{dp['nombre'].replace(' ', '_')}.pdf"
+                    st.download_button(
+                        label="⬇️ DESCARGAR PDF AHORA",
+                        data=buffer,
+                        file_name=nombre_archivo,
+                        mime="application/pdf",
+                        type="primary"
+                    )
+
                 except Exception as e:
-                    st.error(f"Error generando PDF: {e}")
+                    st.error(f"❌ Error al generar el PDF completo: {str(e)}")
+                    st.warning("Posible causa: La librería 'kaleido' no está instalada. Ejecute 'pip install kaleido' en su terminal.")
+                  
 # ═══════════════════════════════════════════════════════════════════════════════
 # FOOTER ULTRA PROFESIONAL
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -2364,7 +2515,3 @@ if st.session_state.datos_completos:
     st.sidebar.success("✅ Sistema listo - Evaluación completa")
 else:
     st.sidebar.info(f"ℹ️ En proceso - Paso {st.session_state.paso_actual}/5")
-
-
-
-
