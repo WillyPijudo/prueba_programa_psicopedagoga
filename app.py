@@ -1198,10 +1198,15 @@ def generar_pdf_final(datos_completos):
     """
     
     story.append(Paragraph(texto_conclusion, style_body))
-    
-    # Footer PDF
+# Footer PDF
     story.append(Spacer(1, 2*cm))
-    story.append(Line(0, 0, 17*cm, 0, strokeColor=colors.HexColor("#A91D3A")))
+    
+    # --- CORRECCIÓN: La línea ahora está dentro de un Drawing ---
+    linea_footer = Drawing(500, 10) # Crear lienzo invisible
+    linea_footer.add(Line(0, 0, 17*cm, 0, strokeColor=colors.HexColor("#A91D3A"))) # Dibujar línea dentro
+    story.append(linea_footer) # Añadir lienzo al PDF
+    # ------------------------------------------------------------
+
     story.append(Spacer(1, 0.2*cm))
     story.append(Paragraph("Informe generado automáticamente por WPPSI-IV Pro | Uso profesional exclusivo", 
                            ParagraphStyle('Footer', parent=styles['Normal'], fontSize=8, textColor=colors.grey, alignment=TA_CENTER)))
@@ -1439,3 +1444,4 @@ st.markdown("""
         <p style="font-size: 0.8rem; margin-top: 10px;">Versión 5.0.0 | Build 2026</p>
     </div>
 """, unsafe_allow_html=True)
+
