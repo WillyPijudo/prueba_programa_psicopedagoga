@@ -1016,17 +1016,22 @@ with tab2:
             'cancelacion': 'Cancelación',
             'rompecabezas': 'Rompecabezas'
         }
+
+# ... código anterior ...
         
         datos_conversion = []
         for key, nombre_prueba in pruebas_nombres.items():
-            pd = pd_dict.get(key, '-')
-            pe = pe_dict.get(key, '-')
+            # CORRECCIÓN: Cambiamos el nombre de variable 'pd' a 'valor_pd'
+            valor_pd = pd_dict.get(key, '-') 
+            valor_pe = pe_dict.get(key, '-')
+            
             datos_conversion.append({
                 'Prueba': nombre_prueba,
-                'PD': pd if pd != '-' else '-',
-                'PE': pe if pe != '-' else '-'
+                'PD': valor_pd if valor_pd != '-' else '-',
+                'PE': valor_pe if valor_pe != '-' else '-'
             })
         
+        # Ahora 'pd' sigue refiriéndose a la librería pandas correctamente
         df_conversion = pd.DataFrame(datos_conversion)
         st.dataframe(df_conversion, use_container_width=True, hide_index=True)
         
@@ -1239,3 +1244,4 @@ st.markdown("""
         </p>
     </div>
 """, unsafe_allow_html=True)
+
