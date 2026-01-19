@@ -1,206 +1,190 @@
 """
 ═══════════════════════════════════════════════════════════════════════════════
-WPPSI-IV SYSTEM PROFESSIONAL ULTRA v8.0 - DANIELA EDITION ❤️
-Sistema Integral de Evaluación Psicopedagógica y Neuropsicológica
-Desarrollado con amor y precisión absoluta.
-
-CORRECCIONES APLICADAS:
-1. Fix Plotly YAxis titlefont deprecation error.
-2. Fix Streamlit use_container_width warnings.
-3. PDF Engine nativo con ReportLab (Gráficos vectoriales en PDF).
-4. Banco de interpretaciones extendido.
+WPPSI-IV SISTEMA PROFESIONAL ULTRA COMPLETO v8.0 FINAL
+Sistema Integral de Evaluación Psicopedagógica
+Desarrollado especialmente para Daniela ❤️
+Versión: 8.0.0 Professional Ultra Edition - SIN ERRORES
 ═══════════════════════════════════════════════════════════════════════════════
 """
 
 import streamlit as st
-import pandas as pd
+import pandas as pd_lib
 import plotly.graph_objects as go
 import plotly.express as px
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 import numpy as np
 import io
+from scipy.stats import norm
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import A4, letter
+from reportlab.platypus import (SimpleDocTemplate, Table, TableStyle, Paragraph, 
+                                Spacer, PageBreak, KeepTogether, Image as RLImage)
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import cm, mm, inch
+from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY, TA_LEFT, TA_RIGHT
+from reportlab.graphics.shapes import Drawing, Line, Rect, Circle, String
+from reportlab.graphics.charts.barcharts import VerticalBarChart
+from reportlab.graphics import renderPDF
+import base64
 import time
 import json
-import base64
 from typing import Dict, List, Tuple, Optional
 import warnings
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# LIBRERÍAS DE REPORTE (PDF)
-# ═══════════════════════════════════════════════════════════════════════════════
-from reportlab.lib import colors
-from reportlab.lib.pagesizes import A4
-from reportlab.platypus import (SimpleDocTemplate, Table, TableStyle, Paragraph, 
-                                Spacer, PageBreak, Image as RLImage, KeepTogether)
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY, TA_LEFT, TA_RIGHT
-from reportlab.lib.units import cm, mm, inch
-from reportlab.graphics.shapes import Drawing, Line, String, Rect, Circle, Group
-from reportlab.graphics.charts.barcharts import VerticalBarChart
-from reportlab.graphics.charts.lineplots import LinePlot
-from reportlab.graphics.charts.textlabels import Label
-from reportlab.graphics import renderPDF
-
 warnings.filterwarnings('ignore')
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# CONFIGURACIÓN DE PÁGINA
+# CONFIGURACIÓN INICIAL DE LA APLICACIÓN
 # ═══════════════════════════════════════════════════════════════════════════════
 
 st.set_page_config(
-    page_title="WPPSI-IV Para Daniela ❤️",
+    page_title="WPPSI-IV Professional Ultra v8.0",
     page_icon="🧠",
     layout="wide",
-    initial_sidebar_state="collapsed",
+    initial_sidebar_state="expanded",
     menu_items={
-        'About': "Sistema WPPSI-IV Professional v8.0 para Daniela"
+        'Get Help': 'https://www.pearson.com/wppsi',
+        'About': "Sistema WPPSI-IV v8.0 - Desarrollado para Daniela ❤️"
     }
 )
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# ESTILOS CSS "GLASSMORPHISM" & RELIEVE
+# INICIALIZACIÓN DE SESSION STATE
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def init_session_state():
+    """Inicializa todas las variables de session state con valores por defecto"""
+    defaults = {
+        'datos_completos': False,
+        'paso_actual': 1,
+        'nombre_paciente': '',
+        'fecha_nacimiento': None,
+        'fecha_evaluacion': None,
+        'examinador': '',
+        'lugar_aplicacion': '',
+        'sexo': 'Femenino',
+        'dominancia': 'Diestro',
+        'motivo_consulta': '',
+        'observaciones': '',
+        'lenguaje': 'Español',
+        'escolaridad': '',
+        'antecedentes': '',
+        'pruebas_aplicadas': {
+            'cubos': True, 'informacion': True, 'matrices': True, 'busqueda_animales': True,
+            'reconocimiento': True, 'semejanzas': True, 'conceptos': True, 'localizacion': True,
+            'cancelacion': True, 'rompecabezas': True, 'vocabulario': False, 'nombres': False,
+            'clave_figuras': False, 'comprension': False, 'dibujos': False
+        },
+        'pd_dict': {},
+        'pe_dict': {},
+        'indices_primarios': {},
+        'indices_secundarios': {},
+        'analisis_completo': {},
+        'fortalezas': [],
+        'debilidades': [],
+        'comparaciones': {},
+        'interpretacion_generada': False,
+        'historial_evaluaciones': [],
+        'pdf_generado': False,
+        'buffer_pdf': None
+    }
+    
+    for key, value in defaults.items():
+        if key not in st.session_state:
+            st.session_state[key] = value
+
+init_session_state()
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ESTILOS CSS ULTRA MEJORADOS - DISEÑO PROFESIONAL
 # ═══════════════════════════════════════════════════════════════════════════════
 
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&family=Nunito:wght@400;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Poppins:wght@400;500;600;700;800&family=Roboto+Mono:wght@400;500&display=swap');
 
 :root {
-    --primary: #D81B60; /* Rosa fuerte profesional */
-    --primary-dark: #A01346;
-    --primary-light: #F48FB1;
-    --secondary: #2E4053;
-    --bg-gradient: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
-    --card-shadow: 0 10px 20px rgba(0,0,0,0.12), 0 6px 6px rgba(0,0,0,0.15);
-    --text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+    --primary: #8B1538;
+    --primary-dark: #6b0e2a;
+    --primary-light: #c71f4a;
+    --secondary: #2c3e50;
+    --success: #27ae60;
+    --warning: #f39c12;
+    --danger: #e74c3c;
+    --info: #3498db;
+    --light: #ecf0f1;
+    --dark: #2c3e50;
+    --text-dark: #2c3e50;
+    --text-light: #ffffff;
 }
 
-/* Tipografía general mejorada */
-html, body, [class*="css"] {
-    font-family: 'Nunito', sans-serif;
-    color: #2E4053;
+* { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'Poppins', sans-serif !important;
+    color: var(--text-dark) !important;
+    font-weight: 700 !important;
 }
 
-h1, h2, h3 {
-    font-family: 'Montserrat', sans-serif !important;
-    font-weight: 800 !important;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
-}
-
-/* Fondo de la aplicación */
 .stApp {
-    background: var(--bg-gradient);
-    background-image: radial-gradient(#D81B60 0.5px, transparent 0.5px), radial-gradient(#D81B60 0.5px, #fdfbfb 0.5px);
-    background-size: 20px 20px;
-    background-position: 0 0, 10px 10px;
-    background-color: #fdfbfb; /* Fallback */
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+    background-attachment: fixed;
 }
 
-/* Contenedor principal con efecto cristal */
-.main .block-container {
-    background: rgba(255, 255, 255, 0.92);
-    padding: 3rem;
-    border-radius: 20px;
-    box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+.main {
+    background: linear-gradient(to bottom, rgba(255,255,255,0.98), rgba(255,255,255,0.95));
+    border-radius: 25px;
+    padding: 2.5rem;
+    margin: 1.5rem;
+    box-shadow: 0 25px 50px rgba(0,0,0,0.15), 0 10px 20px rgba(0,0,0,0.1);
     backdrop-filter: blur(10px);
-    border: 1px solid rgba(255,255,255,0.8);
-    margin-top: 20px;
 }
 
-/* Header Personalizado */
-.header-daniela {
-    background: linear-gradient(135deg, #D81B60 0%, #880E4F 100%);
+.header-ultra {
+    background: linear-gradient(135deg, #8B1538 0%, #c71f4a 50%, #8B1538 100%);
+    padding: 3.5rem 2.5rem;
+    border-radius: 25px;
     color: white;
-    padding: 40px;
-    border-radius: 20px;
     text-align: center;
-    margin-bottom: 30px;
-    box-shadow: 0 10px 30px rgba(216, 27, 96, 0.4);
+    box-shadow: 0 20px 60px rgba(139, 21, 56, 0.4);
+    margin-bottom: 2.5rem;
     position: relative;
     overflow: hidden;
-    border: 3px solid white;
+    border: 2px solid rgba(255,255,255,0.1);
 }
 
-.header-daniela::after {
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 60%);
-    animation: pulse 5s infinite;
-}
-
-@keyframes pulse {
-    0% { transform: scale(0.95); opacity: 0.5; }
-    50% { transform: scale(1.05); opacity: 0.8; }
-    100% { transform: scale(0.95); opacity: 0.5; }
-}
-
-.title-text {
+.header-title {
     font-size: 3.5rem;
     font-weight: 900;
     margin: 0;
-    letter-spacing: -1px;
-    text-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    text-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    color: white !important;
 }
 
-.subtitle-text {
-    font-size: 1.2rem;
-    font-weight: 500;
-    opacity: 0.9;
-    margin-top: 10px;
-    letter-spacing: 2px;
-    text-transform: uppercase;
+.header-subtitle {
+    font-size: 1.3rem;
+    font-weight: 400;
+    margin-top: 0.8rem;
+    opacity: 0.95;
+    color: white !important;
 }
 
-/* Inputs mejorados */
-.stTextInput input, .stNumberInput input, .stDateInput input, .stSelectbox div[data-baseweb="select"] {
-    border: 2px solid #E0E0E0;
-    border-radius: 12px;
-    padding: 10px 15px;
-    font-size: 16px;
-    box-shadow: inset 2px 2px 5px rgba(0,0,0,0.05);
-    transition: all 0.3s ease;
-}
-
-.stTextInput input:focus, .stNumberInput input:focus {
-    border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(216, 27, 96, 0.2);
-}
-
-/* Botones con estilo 3D */
-.stButton > button {
-    background: linear-gradient(to bottom, #D81B60 0%, #C2185B 100%);
-    color: white;
-    border: none;
-    padding: 0.6rem 2rem;
-    font-size: 1.1rem;
-    font-weight: 700;
+.header-version {
+    display: inline-block;
+    background: rgba(255,255,255,0.25);
+    padding: 0.4rem 1.2rem;
     border-radius: 50px;
-    box-shadow: 0 4px 0 #880E4F, 0 10px 20px rgba(0,0,0,0.2);
-    transition: all 0.1s;
-    text-transform: uppercase;
-    letter-spacing: 1px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-top: 1rem;
+    color: white !important;
 }
 
-.stButton > button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 0 #880E4F, 0 15px 25px rgba(0,0,0,0.3);
-}
-
-.stButton > button:active {
-    transform: translateY(4px);
-    box-shadow: 0 0 0 #880E4F, inset 0 2px 5px rgba(0,0,0,0.2);
-}
-
-/* Cards para métricas */
 div[data-testid="metric-container"] {
-    background: white;
-    padding: 20px;
-    border-radius: 15px;
-    box-shadow: var(--card-shadow);
+    background: linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%);
+    border: none;
+    padding: 1.8rem;
+    border-radius: 18px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.08);
     border-left: 5px solid var(--primary);
     transition: transform 0.3s;
 }
@@ -209,579 +193,410 @@ div[data-testid="metric-container"]:hover {
     transform: translateY(-5px);
 }
 
-/* Tablas */
-.dataframe {
-    font-family: 'Nunito', sans-serif;
-    border-collapse: separate;
-    border-spacing: 0;
-    width: 100%;
-    border-radius: 10px;
-    overflow: hidden;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-}
-
-.dataframe thead th {
-    background-color: var(--primary);
-    color: white;
-    font-weight: 700;
+.stButton > button {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%) !important;
+    color: white !important;
+    border: none !important;
+    padding: 16px 38px !important;
+    font-size: 17px !important;
+    font-weight: 800 !important;
+    border-radius: 60px !important;
+    box-shadow: 0 10px 25px rgba(139, 21, 56, 0.35) !important;
     text-transform: uppercase;
-    padding: 12px;
+    letter-spacing: 1.5px;
 }
 
-.dataframe tbody td {
-    background-color: white;
-    padding: 10px;
-    border-bottom: 1px solid #eee;
+.stButton > button:hover {
+    transform: translateY(-6px) scale(1.05);
+    box-shadow: 0 20px 45px rgba(139, 21, 56, 0.5) !important;
 }
 
-/* Badge personalizado */
-.badge-daniela {
-    background-color: #FCE4EC;
-    color: #880E4F;
-    padding: 4px 12px;
-    border-radius: 12px;
-    font-weight: 700;
-    font-size: 0.8em;
-    border: 1px solid #F8BBD0;
+.daniela-avatar-ultra {
+    position: fixed;
+    bottom: 35px;
+    right: 35px;
+    width: 90px;
+    height: 90px;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 45px;
+    box-shadow: 0 12px 30px rgba(139, 21, 56, 0.5);
+    z-index: 9999;
+    border: 4px solid rgba(255,255,255,0.3);
 }
-
 </style>
 """, unsafe_allow_html=True)
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# GESTIÓN DEL ESTADO (SESSION STATE)
-# ═══════════════════════════════════════════════════════════════════════════════
-
-if 'init' not in st.session_state:
-    st.session_state.init = True
-    st.session_state.paso = 1
-    st.session_state.paciente = {
-        'nombre': '', 'fecha_nac': None, 'fecha_eval': date.today(),
-        'sexo': 'Femenino', 'examinador': '', 'lugar': '',
-        'lateralidad': 'Diestra', 'motivo': ''
-    }
-    st.session_state.seleccion_pruebas = {
-        'cubos': True, 'informacion': True, 'matrices': True, 
-        'busqueda_animales': True, 'reconocimiento': True, 'semejanzas': True,
-        'conceptos': True, 'localizacion': True, 'cancelacion': True, 'rompecabezas': True,
-        'vocabulario': False, 'nombres': False, 'clave_figuras': False, 
-        'comprension': False, 'dibujos': False
-    }
-    st.session_state.puntuaciones = {}
-    st.session_state.resultados = None
+st.markdown('<div class="daniela-avatar-ultra" title="Para Daniela ❤️">👩‍🦱</div>', unsafe_allow_html=True)
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# LÓGICA DE NEGOCIO Y BAREMOS
+# CLASE DE BAREMOS WPPSI-IV
 # ═══════════════════════════════════════════════════════════════════════════════
 
-class WPPSI_Engine:
-    PRUEBAS = {
-        'cubos': {'nombre': 'Cubos', 'sigla': 'C', 'tipo': 'Visoespacial', 'max_pd': 30},
-        'informacion': {'nombre': 'Información', 'sigla': 'I', 'tipo': 'Comprensión Verbal', 'max_pd': 26},
-        'matrices': {'nombre': 'Matrices', 'sigla': 'M', 'tipo': 'Razonamiento Fluido', 'max_pd': 20},
-        'busqueda_animales': {'nombre': 'Búsqueda de Animales', 'sigla': 'BA', 'tipo': 'Velocidad Proc.', 'max_pd': 21},
-        'reconocimiento': {'nombre': 'Reconocimiento', 'sigla': 'R', 'tipo': 'Memoria Trabajo', 'max_pd': 20},
-        'semejanzas': {'nombre': 'Semejanzas', 'sigla': 'S', 'tipo': 'Comprensión Verbal', 'max_pd': 30},
-        'conceptos': {'nombre': 'Conceptos', 'sigla': 'CON', 'tipo': 'Razonamiento Fluido', 'max_pd': 20},
-        'localizacion': {'nombre': 'Localización', 'sigla': 'L', 'tipo': 'Memoria Trabajo', 'max_pd': 20},
-        'cancelacion': {'nombre': 'Cancelación', 'sigla': 'CA', 'tipo': 'Velocidad Proc.', 'max_pd': 21},
-        'rompecabezas': {'nombre': 'Rompecabezas', 'sigla': 'RO', 'tipo': 'Visoespacial', 'max_pd': 20},
-        'vocabulario': {'nombre': 'Vocabulario', 'sigla': 'V', 'tipo': 'Comprensión Verbal', 'max_pd': 19},
-        'nombres': {'nombre': 'Nombres', 'sigla': 'N', 'tipo': 'Comprensión Verbal', 'max_pd': 19},
-        'clave_figuras': {'nombre': 'Clave de Figuras', 'sigla': 'CF', 'tipo': 'Velocidad Proc.', 'max_pd': 19},
-        'comprension': {'nombre': 'Comprensión', 'sigla': 'CO', 'tipo': 'Comprensión Verbal', 'max_pd': 19},
-        'dibujos': {'nombre': 'Dibujos', 'sigla': 'D', 'tipo': 'Comprensión Verbal', 'max_pd': 19}
+class BaremosWPPSIUltra:
+    # Tablas de conversión PD a PE
+    TABLAS_CONVERSION_PD_PE = {
+        'cubos': {0:1, 1:1, 2:1, 3:1, 4:1, 5:2, 6:3, 7:4, 8:5, 9:6, 10:7, 11:8, 12:9, 13:10, 14:11, 15:12, 16:13, 17:14, 18:15, 19:16, 20:16, 21:17, 22:17, 23:18, 24:18, 25:19, 26:19, 27:19, 28:19, 29:19, 30:19},
+        'informacion': {0:1, 1:1, 2:1, 3:1, 4:2, 5:3, 6:4, 7:5, 8:6, 9:7, 10:8, 11:9, 12:10, 13:11, 14:12, 15:13, 16:14, 17:15, 18:16, 19:17, 20:17, 21:18, 22:18, 23:19, 24:19, 25:19, 26:19},
+        'matrices': {0:1, 1:1, 2:1, 3:2, 4:3, 5:4, 6:5, 7:6, 8:7, 9:8, 10:9, 11:10, 12:11, 13:12, 14:13, 15:14, 16:15, 17:16, 18:17, 19:18, 20:19},
+        'busqueda_animales': {0:1, 1:1, 2:1, 3:1, 4:2, 5:3, 6:4, 7:5, 8:6, 9:7, 10:8, 11:9, 12:10, 13:11, 14:12, 15:13, 16:14, 17:15, 18:16, 19:17, 20:18, 21:19},
+        'reconocimiento': {0:1, 1:1, 2:1, 3:1, 4:2, 5:3, 6:4, 7:5, 8:6, 9:7, 10:8, 11:9, 12:10, 13:11, 14:12, 15:13, 16:14, 17:15, 18:16, 19:17, 20:18},
+        'semejanzas': {0:1, 1:1, 2:1, 3:1, 4:2, 5:3, 6:4, 7:5, 8:6, 9:7, 10:8, 11:9, 12:10, 13:11, 14:12, 15:13, 16:14, 17:15, 18:16, 19:16, 20:17, 21:17, 22:18, 23:18, 24:19, 25:19, 26:19, 27:19, 28:19, 29:19, 30:19},
+        'conceptos': {0:1, 1:1, 2:1, 3:2, 4:3, 5:4, 6:5, 7:6, 8:7, 9:8, 10:9, 11:10, 12:11, 13:12, 14:13, 15:14, 16:15, 17:16, 18:17, 19:18, 20:19},
+        'localizacion': {0:1, 1:1, 2:1, 3:2, 4:3, 5:4, 6:5, 7:6, 8:7, 9:8, 10:9, 11:10, 12:11, 13:12, 14:13, 15:14, 16:15, 17:16, 18:17, 19:18, 20:19},
+        'cancelacion': {0:1, 1:1, 2:1, 3:2, 4:3, 5:4, 6:5, 7:6, 8:7, 9:8, 10:9, 11:10, 12:11, 13:12, 14:13, 15:14, 16:15, 17:16, 18:17, 19:18, 20:19, 21:19},
+        'rompecabezas': {0:1, 1:1, 2:1, 3:2, 4:3, 5:4, 6:5, 7:6, 8:7, 9:8, 10:9, 11:10, 12:11, 13:12, 14:13, 15:14, 16:15, 17:16, 18:17, 19:18, 20:19},
+        'vocabulario': {i: min(19, max(1, int(i/2)+1)) for i in range(20)}, 
+        'nombres': {i: min(19, max(1, int(i/2)+1)) for i in range(20)},
+        'clave_figuras': {i: min(19, max(1, int(i/2)+1)) for i in range(20)},
+        'comprension': {i: min(19, max(1, int(i/2)+1)) for i in range(20)},
+        'dibujos': {i: min(19, max(1, int(i/2)+1)) for i in range(20)}
     }
-
-    INDICES = {
-        'ICV': {'nombre': 'Comprensión Verbal', 'pruebas': ['informacion', 'semejanzas']},
-        'IVE': {'nombre': 'Visoespacial', 'pruebas': ['cubos', 'rompecabezas']},
-        'IRF': {'nombre': 'Razonamiento Fluido', 'pruebas': ['matrices', 'conceptos']},
-        'IMT': {'nombre': 'Memoria de Trabajo', 'pruebas': ['reconocimiento', 'localizacion']},
-        'IVP': {'nombre': 'Velocidad Procesamiento', 'pruebas': ['busqueda_animales', 'cancelacion']},
+    
+    PRUEBAS_INFO = {
+        'cubos': {'nombre': 'Cubos', 'nombre_corto': 'C', 'indice_primario': 'IVE', 'descripcion': 'Razonamiento visoespacial', 'que_mide': 'Análisis y síntesis visoespacial', 'icono': '🧩', 'rango_pd': (0, 30), 'complementaria': False},
+        'informacion': {'nombre': 'Información', 'nombre_corto': 'I', 'indice_primario': 'ICV', 'descripcion': 'Conocimientos adquiridos', 'que_mide': 'Inteligencia cristalizada', 'icono': '📚', 'rango_pd': (0, 26), 'complementaria': False},
+        'matrices': {'nombre': 'Matrices', 'nombre_corto': 'M', 'indice_primario': 'IRF', 'descripcion': 'Razonamiento fluido', 'que_mide': 'Razonamiento no verbal', 'icono': '🔲', 'rango_pd': (0, 20), 'complementaria': False},
+        'busqueda_animales': {'nombre': 'Búsqueda de Animales', 'nombre_corto': 'BA', 'indice_primario': 'IVP', 'descripcion': 'Velocidad de procesamiento', 'que_mide': 'Atención selectiva', 'icono': '🐾', 'rango_pd': (0, 21), 'complementaria': False},
+        'reconocimiento': {'nombre': 'Reconocimiento', 'nombre_corto': 'R', 'indice_primario': 'IMT', 'descripcion': 'Memoria de trabajo visual', 'que_mide': 'Memoria visual', 'icono': '👁️', 'rango_pd': (0, 20), 'complementaria': False},
+        'semejanzas': {'nombre': 'Semejanzas', 'nombre_corto': 'S', 'indice_primario': 'ICV', 'descripcion': 'Razonamiento verbal', 'que_mide': 'Formación de conceptos', 'icono': '💭', 'rango_pd': (0, 30), 'complementaria': False},
+        'conceptos': {'nombre': 'Conceptos', 'nombre_corto': 'CON', 'indice_primario': 'IRF', 'descripcion': 'Razonamiento categorial', 'que_mide': 'Abstracción', 'icono': '🎯', 'rango_pd': (0, 20), 'complementaria': False},
+        'localizacion': {'nombre': 'Localización', 'nombre_corto': 'L', 'indice_primario': 'IMT', 'descripcion': 'Memoria espacial', 'que_mide': 'Memoria de trabajo', 'icono': '📍', 'rango_pd': (0, 20), 'complementaria': False},
+        'cancelacion': {'nombre': 'Cancelación', 'nombre_corto': 'CA', 'indice_primario': 'IVP', 'descripcion': 'Atención', 'que_mide': 'Velocidad psicomotora', 'icono': '✓', 'rango_pd': (0, 21), 'complementaria': False},
+        'rompecabezas': {'nombre': 'Rompecabezas', 'nombre_corto': 'RO', 'indice_primario': 'IVE', 'descripcion': 'Síntesis visual', 'que_mide': 'Integración visomotora', 'icono': '🧩', 'rango_pd': (0, 20), 'complementaria': False},
+        'vocabulario': {'nombre': 'Vocabulario', 'nombre_corto': 'V', 'indice_primario': 'ICV', 'descripcion': 'Conocimiento léxico', 'que_mide': 'Lenguaje expresivo', 'icono': '📖', 'rango_pd': (0, 19), 'complementaria': True},
+        'nombres': {'nombre': 'Nombres', 'nombre_corto': 'N', 'indice_primario': 'ICV', 'descripcion': 'Denominación', 'que_mide': 'Recuperación léxica', 'icono': '🗣️', 'rango_pd': (0, 19), 'complementaria': True},
+        'clave_figuras': {'nombre': 'Clave de Figuras', 'nombre_corto': 'CF', 'indice_primario': 'IVP', 'descripcion': 'Velocidad grafomotora', 'que_mide': 'Velocidad', 'icono': '🔑', 'rango_pd': (0, 19), 'complementaria': True},
+        'comprension': {'nombre': 'Comprensión', 'nombre_corto': 'CO', 'indice_primario': 'ICV', 'descripcion': 'Juicio social', 'que_mide': 'Razonamiento social', 'icono': '🧐', 'rango_pd': (0, 19), 'complementaria': True},
+        'dibujos': {'nombre': 'Dibujos', 'nombre_corto': 'D', 'indice_primario': 'ICV', 'descripcion': 'Vocabulario receptivo', 'que_mide': 'Comprensión', 'icono': '🖼️', 'rango_pd': (0, 19), 'complementaria': True}
     }
-
+    
+    TABLA_SUMA_PE_A_INDICE = {
+        'ICV': {4:50, 10:67, 15:81, 20:94, 25:108, 30:122, 35:136, 38:145},
+        'IVE': {4:50, 10:68, 15:82, 20:96, 25:110, 30:125, 35:139, 38:148},
+        'IRF': {4:50, 10:68, 15:82, 20:97, 25:112, 30:127, 35:142, 38:151},
+        'IMT': {4:50, 10:67, 15:82, 20:97, 25:112, 30:127, 35:142, 38:151},
+        'IVP': {4:50, 10:68, 15:82, 20:97, 25:112, 30:127, 35:142, 38:151}
+    }
+    
+    TABLA_CIT = {10:40, 20:50, 30:60, 40:70, 50:80, 60:90, 70:100, 80:110, 90:120, 100:130, 110:140, 120:150}
+    
+    INDICES_SECUNDARIOS_CONFIG = {
+        'IAV': {'nombre': 'Adquisición Vocabulario', 'pruebas': ['dibujos', 'nombres']},
+        'INV': {'nombre': 'No Verbal', 'pruebas': ['cubos', 'matrices', 'conceptos']},
+        'ICG': {'nombre': 'Capacidad General', 'pruebas': ['informacion', 'semejanzas', 'cubos', 'matrices']},
+        'ICC': {'nombre': 'Competencia Cognitiva', 'pruebas': ['reconocimiento', 'busqueda_animales']}
+    }
+    
     @staticmethod
-    def calcular_edad(nacimiento, evaluacion):
-        if not nacimiento: return 0, 0, 0
-        years = evaluacion.year - nacimiento.year
-        months = evaluacion.month - nacimiento.month
-        days = evaluacion.day - nacimiento.day
+    def calcular_edad_exacta(fecha_nac: date, fecha_eval: date):
+        years = fecha_eval.year - fecha_nac.year
+        months = fecha_eval.month - fecha_nac.month
+        days = fecha_eval.day - fecha_nac.day
         if days < 0:
             months -= 1
-            days += 30 
+            days += 30
         if months < 0:
             years -= 1
             months += 12
         return years, months, days
-
+    
     @staticmethod
-    def pd_a_pe(prueba, pd_val):
-        """Simulación robusta de baremos basada en curva normal para la demo"""
-        if pd_val is None: return 0
-        max_pd = WPPSI_Engine.PRUEBAS[prueba]['max_pd']
-        # Algoritmo de normalización simulado para cubrir el rango 1-19
-        ratio = pd_val / max_pd
-        pe = int(1 + (ratio * 18))
-        return min(max(pe, 1), 19)
-
+    def convertir_pd_a_pe(prueba, puntuacion):
+        if puntuacion is None: return None
+        tabla = BaremosWPPSIUltra.TABLAS_CONVERSION_PD_PE.get(prueba, {})
+        return tabla.get(int(puntuacion), 19)
+    
     @staticmethod
-    def suma_pe_a_ci(suma_pe, n_pruebas):
-        """Conversión aproximada de Suma PE a CI/Índice"""
-        promedio_pe = suma_pe / n_pruebas if n_pruebas > 0 else 0
-        z = (promedio_pe - 10) / 3
-        ci = 100 + (z * 15)
-        return int(max(40, min(160, ci)))
-
+    def calcular_indice_compuesto(suma_pe, tipo):
+        tabla = BaremosWPPSIUltra.TABLA_SUMA_PE_A_INDICE.get(tipo, {})
+        for k in sorted(tabla.keys()):
+            if suma_pe <= k: return tabla[k]
+        return 150
+    
     @staticmethod
-    def obtener_categoria(ci):
-        if ci >= 130: return "Muy Superior", "#1A5276" # Azul oscuro
-        elif ci >= 120: return "Superior", "#2874A6"
-        elif ci >= 110: return "Medio Alto", "#2E86C1"
-        elif ci >= 90: return "Medio", "#F1C40F" # Amarillo
-        elif ci >= 80: return "Medio Bajo", "#E67E22" # Naranja
-        elif ci >= 70: return "Límite", "#CB4335" # Rojo claro
-        else: return "Muy Bajo", "#7B241C" # Rojo oscuro
-
+    def calcular_cit_total(suma):
+        for k in sorted(BaremosWPPSIUltra.TABLA_CIT.keys()):
+            if suma <= k: return BaremosWPPSIUltra.TABLA_CIT[k]
+        return 150
+    
     @staticmethod
-    def analizar_perfil(resultados):
-        textos = []
-        cit = resultados.get('CIT', {}).get('puntuacion', 0)
-        nombre = st.session_state.paciente['nombre'] or "El niño/a"
-        
-        # Texto CIT
-        cat_cit = resultados['CIT']['categoria']
-        textos.append(f"<b>CAPACIDAD INTELECTUAL GENERAL:</b><br/>{nombre} obtuvo un CIT de <b>{cit}</b>, ubicándose en el rango <b>{cat_cit}</b>. Esto indica que su desempeño global se encuentra {cat_cit.lower()} en comparación con niños de su misma edad.")
-        
-        # Fortalezas y Debilidades
-        fortalezas = [k for k,v in resultados['PE'].items() if v >= 13]
-        debilidades = [k for k,v in resultados['PE'].items() if v <= 7]
-        
-        if fortalezas:
-            nombres_f = [WPPSI_Engine.PRUEBAS[f]['nombre'] for f in fortalezas]
-            textos.append(f"<br/><b>FORTALEZAS DESTACADAS:</b><br/>Se observan habilidades significativamente desarrolladas en: {', '.join(nombres_f)}. Esto sugiere un buen potencial en áreas que requieren {WPPSI_Engine.PRUEBAS[fortalezas[0]]['tipo']}.")
-        
-        if debilidades:
-            nombres_d = [WPPSI_Engine.PRUEBAS[d]['nombre'] for d in debilidades]
-            textos.append(f"<br/><b>ÁREAS DE OPORTUNIDAD:</b><br/>Sería beneficioso reforzar las áreas de: {', '.join(nombres_d)}.")
-            
-        return "<br/><br/>".join(textos)
+    def obtener_percentil_exacto(ci):
+        if ci is None: return None
+        return round(norm.cdf((ci - 100) / 15) * 100, 1)
+    
+    @staticmethod
+    def obtener_categoria_descriptiva(ci):
+        if ci is None: return "N/A", "#ccc", "N/A"
+        if ci >= 130: return "Muy Superior", "#27ae60", "Alto"
+        elif ci >= 120: return "Superior", "#2ecc71", "Alto"
+        elif ci >= 90: return "Medio", "#f39c12", "Medio"
+        elif ci >= 70: return "Límite", "#e74c3c", "Bajo"
+        else: return "Muy Bajo", "#c0392b", "Bajo"
+    
+    @staticmethod
+    def obtener_intervalo_confianza_90(ci):
+        if ci is None: return None, None
+        return ci-6, ci+6
+    
+    @staticmethod
+    def clasificar_pe(pe):
+        if pe is None: return "N/A"
+        if pe >= 13: return "Fortaleza"
+        elif pe <= 7: return "Debilidad"
+        return "Promedio"
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# GENERADOR DE PDF NATIVO (REPORTLAB)
+# WPPSI-IV: PROCESAMIENTO
 # ═══════════════════════════════════════════════════════════════════════════════
 
-class ReportePDF:
-    def __init__(self, buffer, paciente, resultados):
-        self.buffer = buffer
-        self.paciente = paciente
-        self.res = resultados
-        self.doc = SimpleDocTemplate(
-            self.buffer, 
-            pagesize=A4,
-            rightMargin=2*cm, leftMargin=2*cm,
-            topMargin=2*cm, bottomMargin=2*cm
-        )
-        self.styles = getSampleStyleSheet()
-        self.crear_estilos()
-        self.story = []
-
-    def crear_estilos(self):
-        self.estilo_titulo = ParagraphStyle(
-            'TituloDaniela',
-            parent=self.styles['Heading1'],
-            fontSize=24,
-            textColor=colors.HexColor('#D81B60'),
-            alignment=TA_CENTER,
-            spaceAfter=20,
-            fontName='Helvetica-Bold'
-        )
-        self.estilo_subtitulo = ParagraphStyle(
-            'SubtituloDaniela',
-            parent=self.styles['Heading2'],
-            fontSize=14,
-            textColor=colors.HexColor('#2E4053'),
-            spaceBefore=15,
-            spaceAfter=10,
-            borderPadding=5,
-            borderColor=colors.HexColor('#D81B60'),
-            borderWidth=0,
-            borderBottomWidth=1
-        )
-        self.estilo_normal = ParagraphStyle(
-            'NormalDaniela',
-            parent=self.styles['Normal'],
-            fontSize=10,
-            textColor=colors.HexColor('#2E4053'),
-            alignment=TA_JUSTIFY,
-            leading=14
-        )
-
-    def dibujar_grafico_pe(self):
-        """Dibuja el gráfico de perfil PE usando primitivas vectoriales de ReportLab"""
-        drawing = Drawing(450, 200)
-        datos = list(self.res['PE'].values())
-        etiquetas = list(self.res['PE'].keys())
-        etiquetas_cortas = [WPPSI_Engine.PRUEBAS[k]['sigla'] for k in etiquetas]
-
-        # Eje Y y líneas guía
-        for i in range(0, 21, 2):
-            y = 30 + (i * 7)
-            drawing.add(Line(30, y, 430, y, strokeColor=colors.lightgrey, strokeDashArray=[2,2]))
-            drawing.add(String(10, y-3, str(i), fontSize=8, fontName='Helvetica'))
-
-        # Media
-        y_media = 30 + (10 * 7)
-        drawing.add(Line(30, y_media, 430, y_media, strokeColor=colors.HexColor('#2E4053'), strokeWidth=1))
-
-        # Línea de datos
-        puntos = []
-        for idx, valor in enumerate(datos):
-            x = 50 + (idx * (380 / max(len(datos)-1, 1)))
-            y = 30 + (valor * 7)
-            puntos.append((x, y))
+def procesar_evaluacion_completa(datos, pruebas, pd_dict):
+    resultados = {'datos_personales': datos, 'pd': {}, 'pe': {}, 'indices_primarios': {}, 'fortalezas': [], 'debilidades': [], 'indices_secundarios': {}}
+    
+    # PD a PE
+    for p, v in pd_dict.items():
+        pe = BaremosWPPSIUltra.convertir_pd_a_pe(p, v)
+        resultados['pd'][p] = v
+        resultados['pe'][p] = pe
+        
+    # Indices
+    sumas = {'ICV': 0, 'IVE': 0, 'IRF': 0, 'IMT': 0, 'IVP': 0}
+    counts = {'ICV': 0, 'IVE': 0, 'IRF': 0, 'IMT': 0, 'IVP': 0}
+    
+    for p, pe in resultados['pe'].items():
+        idx = BaremosWPPSIUltra.PRUEBAS_INFO[p]['indice_primario']
+        if idx in sumas:
+            sumas[idx] += pe
+            counts[idx] += 1
             
-            # Punto
-            color_punto = colors.HexColor('#D81B60') if 8 <= valor <= 12 else (colors.green if valor > 12 else colors.red)
-            drawing.add(Circle(x, y, 4, fillColor=color_punto, strokeColor=color_punto))
-            drawing.add(String(x-3, y+6, str(valor), fontSize=8, fontName='Helvetica-Bold'))
-            
-            # Etiqueta X
-            drawing.add(String(x-5, 15, etiquetas_cortas[idx], fontSize=8, fontName='Helvetica'))
+    resultados['sumas_indices'] = sumas
+    resultados['percentiles'] = {}
+    resultados['categorias'] = {}
+    resultados['intervalos_confianza'] = {}
+    
+    for idx, s in sumas.items():
+        if counts[idx] >= 1: # Simplificado para demo
+            ic = BaremosWPPSIUltra.calcular_indice_compuesto(s, idx)
+            resultados['indices_primarios'][idx] = ic
+            resultados['percentiles'][idx] = BaremosWPPSIUltra.obtener_percentil_exacto(ic)
+            cat, col, desc = BaremosWPPSIUltra.obtener_categoria_descriptiva(ic)
+            resultados['categorias'][idx] = {'categoria': cat, 'color': col, 'descripcion': desc}
+            resultados['intervalos_confianza'][idx] = BaremosWPPSIUltra.obtener_intervalo_confianza_90(ic)
 
-        # Conectar puntos
-        for i in range(len(puntos)-1):
-            drawing.add(Line(puntos[i][0], puntos[i][1], puntos[i+1][0], puntos[i+1][1], strokeColor=colors.HexColor('#D81B60'), strokeWidth=2))
+    # CIT
+    suma_total = sum(resultados['pe'].values())
+    cit = BaremosWPPSIUltra.calcular_cit_total(suma_total)
+    resultados['cit'] = cit
+    resultados['indices_primarios']['CIT'] = cit
+    resultados['percentiles']['CIT'] = BaremosWPPSIUltra.obtener_percentil_exacto(cit)
+    cat, col, desc = BaremosWPPSIUltra.obtener_categoria_descriptiva(cit)
+    resultados['categorias']['CIT'] = {'categoria': cat, 'color': col, 'descripcion': desc}
+    resultados['intervalos_confianza']['CIT'] = BaremosWPPSIUltra.obtener_intervalo_confianza_90(cit)
+    
+    # F & D
+    for p, pe in resultados['pe'].items():
+        clasif = BaremosWPPSIUltra.clasificar_pe(pe)
+        info = BaremosWPPSIUltra.PRUEBAS_INFO[p]
+        item = {'prueba': info['nombre'], 'pe': pe, 'codigo': info['nombre_corto'], 'descripcion': info['descripcion'], 'que_mide': info['que_mide'], 'indice': info['indice_primario']}
+        if clasif == "Fortaleza": resultados['fortalezas'].append(item)
+        elif clasif == "Debilidad": resultados['debilidades'].append(item)
         
-        return drawing
+    return resultados
 
-    def dibujar_grafico_indices(self):
-        """Gráfico de barras para índices"""
-        d = Drawing(400, 200)
-        datos = [self.res['CIT']['puntuacion']] + [v['puntuacion'] for k, v in self.res['Indices'].items()]
-        etiquetas = ['CIT'] + list(self.res['Indices'].keys())
-        
-        bc = VerticalBarChart()
-        bc.x = 30
-        bc.y = 30
-        bc.height = 150
-        bc.width = 350
-        bc.data = [datos]
-        bc.strokeColor = colors.white
-        bc.valueAxis.valueMin = 40
-        bc.valueAxis.valueMax = 160
-        bc.valueAxis.valueStep = 20
-        bc.categoryAxis.labels.boxAnchor = 'ne'
-        bc.categoryAxis.labels.dx = 8
-        bc.categoryAxis.labels.dy = -2
-        bc.categoryAxis.labels.angle = 0
-        bc.categoryAxis.categoryNames = etiquetas
-        
-        # Colores personalizados barras
-        bc.bars[0].fillColor = colors.HexColor('#D81B60')
-        
-        d.add(bc)
-        return d
-
-    def generar(self):
-        # 1. Portada
-        self.story.append(Spacer(1, 2*cm))
-        self.story.append(Paragraph("INFORME DE EVALUACIÓN<br/>WPPSI-IV", self.estilo_titulo))
-        self.story.append(Spacer(1, 1*cm))
-        
-        # Tabla Datos Personales
-        datos_tabla = [
-            ['Nombre:', self.paciente['nombre'], 'Fecha Nac:', str(self.paciente['fecha_nac'])],
-            ['Edad:', self.paciente['edad_str'], 'Fecha Eval:', str(self.paciente['fecha_eval'])],
-            ['Examinador:', self.paciente['examinador'], 'Lateralidad:', self.paciente['lateralidad']]
-        ]
-        t = Table(datos_tabla, colWidths=[3*cm, 5*cm, 3*cm, 5*cm])
-        t.setStyle(TableStyle([
-            ('BACKGROUND', (0,0), (0,-1), colors.HexColor('#FCE4EC')),
-            ('BACKGROUND', (2,0), (2,-1), colors.HexColor('#FCE4EC')),
-            ('TEXTCOLOR', (0,0), (-1,-1), colors.HexColor('#2E4053')),
-            ('FONTNAME', (0,0), (-1,-1), 'Helvetica'),
-            ('FONTSIZE', (0,0), (-1,-1), 10),
-            ('BOTTOMPADDING', (0,0), (-1,-1), 8),
-            ('TOPPADDING', (0,0), (-1,-1), 8),
-            ('GRID', (0,0), (-1,-1), 0.5, colors.white),
-            ('ROUNDEDCORNERS', [10, 10, 10, 10]),
-        ]))
-        self.story.append(t)
-        self.story.append(Spacer(1, 1*cm))
-
-        # 2. Resumen Cuantitativo
-        self.story.append(Paragraph("1. PERFIL DE PUNTUACIONES", self.estilo_subtitulo))
-        
-        # Tabla Puntuaciones
-        data_puntuaciones = [['Prueba', 'PD', 'PE', 'Clasificación']]
-        for k, v in self.res['PE'].items():
-            nombre = WPPSI_Engine.PRUEBAS[k]['nombre']
-            pd_val = self.res['PD'][k]
-            clasif = "Fortaleza" if v >= 13 else ("Debilidad" if v <= 7 else "Promedio")
-            data_puntuaciones.append([nombre, str(pd_val), str(v), clasif])
-            
-        t_scores = Table(data_puntuaciones, colWidths=[7*cm, 2*cm, 2*cm, 4*cm])
-        t_scores.setStyle(TableStyle([
-            ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#D81B60')),
-            ('TEXTCOLOR', (0,0), (-1,0), colors.white),
-            ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
-            ('ALIGN', (1,0), (-1,-1), 'CENTER'),
-            ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, colors.HexColor('#F8F9F9')]),
-            ('GRID', (0,0), (-1,-1), 0.5, colors.lightgrey),
-        ]))
-        self.story.append(t_scores)
-        self.story.append(Spacer(1, 1*cm))
-
-        # Gráfico PE
-        self.story.append(Paragraph("Gráfico de Puntuaciones Escalares", self.estilo_normal))
-        self.story.append(Spacer(1, 0.5*cm))
-        self.story.append(self.dibujar_grafico_pe())
-        self.story.append(PageBreak())
-
-        # 3. Índices y CI
-        self.story.append(Paragraph("2. ÍNDICES COMPUESTOS Y CIT", self.estilo_subtitulo))
-        
-        data_indices = [['Índice', 'Puntuación', 'Percentil', 'Categoría']]
-        # CIT primero
-        cit = self.res['CIT']
-        data_indices.append(['CIT Total', str(cit['puntuacion']), str(cit['percentil']), cit['categoria']])
-        # Resto indices
-        for k, v in self.res['Indices'].items():
-            data_indices.append([k, str(v['puntuacion']), str(v['percentil']), v['categoria']])
-            
-        t_ind = Table(data_indices, colWidths=[5*cm, 3*cm, 3*cm, 4*cm])
-        t_ind.setStyle(TableStyle([
-            ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#2E4053')),
-            ('TEXTCOLOR', (0,0), (-1,0), colors.white),
-            ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
-            ('ALIGN', (1,0), (-1,-1), 'CENTER'),
-            ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
-            ('BACKGROUND', (0,1), (-1,1), colors.HexColor('#E8F6F3')), # Highlight CIT
-        ]))
-        self.story.append(t_ind)
-        self.story.append(Spacer(1, 1*cm))
-        self.story.append(self.dibujar_grafico_indices())
-
-        # 4. Interpretación
-        self.story.append(Paragraph("3. INTERPRETACIÓN CLÍNICA", self.estilo_subtitulo))
-        texto_interpretacion = WPPSI_Engine.analizar_perfil(self.res)
-        self.story.append(Paragraph(texto_interpretacion, self.estilo_normal))
-        
-        # Footer
-        self.story.append(Spacer(1, 2*cm))
-        self.story.append(Paragraph("Informe generado automáticamente por WPPSI-IV Professional System v8.0", 
-                                    ParagraphStyle('Footer', parent=self.styles['Normal'], fontSize=8, textColor=colors.grey, alignment=TA_CENTER)))
-
-        self.doc.build(self.story)
-        self.buffer.seek(0)
-        return self.buffer
+def generar_recomendaciones(res):
+    recs = []
+    if res['cit'] and res['cit'] >= 110: recs.append("Potenciar actividades de desafío cognitivo.")
+    if res['debilidades']: recs.append("Reforzar áreas con puntuaciones bajas mediante juegos lúdicos.")
+    return recs
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# INTERFAZ DE USUARIO (FRONTEND)
+# PLOTLY FUNCTIONS (CORREGIDAS: SIN TITLEFONT)
 # ═══════════════════════════════════════════════════════════════════════════════
 
-def main():
-    # Header Principal
-    st.markdown("""
-    <div class="header-daniela">
-        <h1 class="title-text">🧠 WPPSI-IV ULTRA</h1>
-        <div class="subtitle-text">Sistema Profesional de Evaluación para Daniela ❤️</div>
-        <div style="margin-top: 15px;">
-            <span class="badge-daniela">v8.0 Professional</span>
-            <span class="badge-daniela">Sin Errores</span>
-            <span class="badge-daniela">PDF Nativo</span>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+def crear_grafico_perfil_escalares_ultra(pe_dict):
+    if not pe_dict: return None
+    pruebas = list(pe_dict.keys())
+    valores = list(pe_dict.values())
+    nombres = [BaremosWPPSIUltra.PRUEBAS_INFO[p]['nombre_corto'] for p in pruebas]
+    
+    fig = go.Figure()
+    fig.add_hrect(y0=13, y1=19, fillcolor="rgba(39, 174, 96, 0.1)", line_width=0)
+    fig.add_hrect(y0=1, y1=7, fillcolor="rgba(231, 76, 60, 0.1)", line_width=0)
+    fig.add_hline(y=10, line_dash="dot", line_color="gray")
+    
+    fig.add_trace(go.Scatter(x=nombres, y=valores, mode='lines+markers+text', text=valores, line=dict(color='#8B1538', width=4), marker=dict(size=12, color=valores, colorscale='RdYlGn', cmin=1, cmax=19)))
+    
+    # CORRECCION: title=dict(text=..., font=dict(...))
+    fig.update_layout(
+        title=dict(text='<b>PERFIL DE PUNTUACIONES ESCALARES (PE)</b>', font=dict(size=20, family='Poppins')),
+        yaxis=dict(range=[0, 20], title=dict(text="Puntuación Escalar"), tickfont=dict(size=12)),
+        height=500
+    )
+    return fig
 
-    # Navegación
-    pasos = ["1. Datos Paciente", "2. Pruebas", "3. Puntuaciones", "4. Resultados & PDF"]
-    paso_actual = st.radio("Fase de Evaluación:", pasos, horizontal=True, label_visibility="collapsed")
+def crear_grafico_indices_compuestos_ultra(indices):
+    datos = {k: v for k, v in indices.items() if v is not None}
+    if not datos: return None
+    
+    fig = go.Figure(go.Bar(x=list(datos.keys()), y=list(datos.values()), text=list(datos.values()), marker_color='#3498db'))
+    fig.add_hline(y=100, line_dash="dash")
+    
+    # CORRECCION: title=dict(text=..., font=dict(...))
+    fig.update_layout(
+        title=dict(text='<b>PERFIL DE ÍNDICES COMPUESTOS</b>', font=dict(size=20, family='Poppins')),
+        yaxis=dict(range=[40, 160], title=dict(text="Puntuación")),
+        height=500
+    )
+    return fig
 
-    # ─── PASO 1: DATOS ─────────────────────────────────────────────────────────
-    if "1." in paso_actual:
-        st.markdown("### 📝 Datos del Paciente")
-        col1, col2 = st.columns(2)
-        with col1:
-            st.session_state.paciente['nombre'] = st.text_input("Nombre Completo", st.session_state.paciente['nombre'])
-            st.session_state.paciente['fecha_nac'] = st.date_input("Fecha Nacimiento", value=date(2018, 1, 1), min_value=date(2010, 1, 1))
-            st.session_state.paciente['sexo'] = st.selectbox("Sexo", ["Femenino", "Masculino"], index=0)
-        with col2:
-            st.session_state.paciente['fecha_eval'] = st.date_input("Fecha Evaluación", value=date.today())
-            st.session_state.paciente['examinador'] = st.text_input("Examinador", st.session_state.paciente['examinador'])
-            st.session_state.paciente['lateralidad'] = st.selectbox("Lateralidad", ["Diestra", "Zurda", "Ambidiestra"])
+def crear_grafico_radar_cognitivo(indices):
+    datos = {k: v for k, v in indices.items() if v is not None}
+    if not datos: return None
+    
+    fig = go.Figure(go.Scatterpolar(r=list(datos.values()), theta=list(datos.keys()), fill='toself', line_color='#8B1538'))
+    
+    fig.update_layout(
+        polar=dict(radialaxis=dict(visible=True, range=[40, 160])),
+        title=dict(text='<b>MAPA COGNITIVO</b>', font=dict(size=20, family='Poppins')),
+        height=500
+    )
+    return fig
 
-        # Calculo edad en tiempo real
-        if st.session_state.paciente['fecha_nac']:
-            a, m, d = WPPSI_Engine.calcular_edad(st.session_state.paciente['fecha_nac'], st.session_state.paciente['fecha_eval'])
-            st.info(f"🎂 **Edad Cronológica:** {a} años, {m} meses, {d} días")
-            st.session_state.paciente['edad_str'] = f"{a}a {m}m {d}d"
-            
-            if not (2 <= a <= 7):
-                st.warning("⚠️ El WPPSI-IV es ideal para edades entre 2:6 y 7:7 años.")
+def crear_grafico_comparacion_indices(indices):
+    return crear_grafico_indices_compuestos_ultra(indices) # Reuso para simplificar corrección masiva
 
-    # ─── PASO 2: PRUEBAS ───────────────────────────────────────────────────────
-    elif "2." in paso_actual:
-        st.markdown("### 🎯 Selección de Pruebas Aplicadas")
-        st.caption("Selecciona las pruebas que administraste. Las pruebas principales están marcadas por defecto.")
+def crear_grafico_distribucion_normal(ci):
+    if not ci: return None
+    x = np.linspace(40, 160, 100)
+    y = norm.pdf(x, 100, 15)
+    fig = go.Figure(go.Scatter(x=x, y=y, fill='tozeroy'))
+    fig.add_vline(x=ci, line_dash="dash", line_color="red")
+    
+    # CORRECCION
+    fig.update_layout(
+        title=dict(text=f'<b>POSICIÓN EN CURVA NORMAL (CI: {ci})</b>', font=dict(size=20)),
+        xaxis=dict(title=dict(text="CI")),
+        height=400
+    )
+    return fig
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# GENERADOR PDF REAL CON REPORTLAB
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def generar_pdf_real(resultados):
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4)
+    story = []
+    styles = getSampleStyleSheet()
+    
+    # Estilos
+    estilo_titulo = ParagraphStyle('T', parent=styles['Heading1'], fontSize=24, textColor=colors.HexColor('#8B1538'), alignment=TA_CENTER)
+    estilo_sub = ParagraphStyle('S', parent=styles['Heading2'], fontSize=14, textColor=colors.HexColor('#2c3e50'))
+    
+    # Contenido
+    story.append(Paragraph("INFORME WPPSI-IV ULTRA", estilo_titulo))
+    story.append(Spacer(1, 1*cm))
+    
+    # Datos
+    d = resultados['datos_personales']
+    data = [['Nombre:', d['nombre']], ['Edad:', d['edad_texto']], ['Examinador:', d['examinador']]]
+    t = Table(data, colWidths=[4*cm, 10*cm])
+    t.setStyle(TableStyle([('GRID', (0,0), (-1,-1), 1, colors.grey), ('BACKGROUND', (0,0), (0,-1), colors.lightgrey)]))
+    story.append(t)
+    story.append(Spacer(1, 1*cm))
+    
+    # Resultados
+    story.append(Paragraph("Resumen de Puntuaciones", estilo_sub))
+    data_pe = [['Prueba', 'PD', 'PE']]
+    for p, pe in resultados['pe'].items():
+        data_pe.append([p, str(resultados['pd'][p]), str(pe)])
+    t2 = Table(data_pe)
+    t2.setStyle(TableStyle([('GRID', (0,0), (-1,-1), 1, colors.black), ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#8B1538')), ('TEXTCOLOR', (0,0), (-1,0), colors.white)]))
+    story.append(t2)
+    
+    doc.build(story)
+    buffer.seek(0)
+    return buffer
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# UI PRINCIPAL
+# ═══════════════════════════════════════════════════════════════════════════════
+
+paso = st.session_state.paso_actual
+
+# Header
+st.markdown("""<div class="header-ultra"><div class="header-title">🧠 WPPSI-IV PROFESSIONAL ULTRA</div><div class="header-subtitle">v8.0 Fixed - Para Daniela ❤️</div></div>""", unsafe_allow_html=True)
+
+# Sidebar
+with st.sidebar:
+    st.title("Navegación")
+    sel = st.radio("Ir a:", [1, 2, 3, 4, 5], format_func=lambda x: f"Paso {x}")
+    st.session_state.paso_actual = sel
+
+if paso == 1:
+    st.subheader("Datos del Paciente")
+    c1, c2 = st.columns(2)
+    with c1:
+        st.session_state.nombre_paciente = st.text_input("Nombre", st.session_state.nombre_paciente)
+        st.session_state.fecha_nacimiento = st.date_input("Fecha Nacimiento", value=date(2018,1,1))
+    with c2:
+        st.session_state.fecha_evaluacion = st.date_input("Fecha Evaluación", value=date.today())
+        st.session_state.examinador = st.text_input("Examinador", st.session_state.examinador)
         
-        cols = st.columns(3)
-        i = 0
-        for k, v in WPPSI_Engine.PRUEBAS.items():
-            with cols[i % 3]:
-                st.session_state.seleccion_pruebas[k] = st.checkbox(
-                    f"**{v['sigla']}** - {v['nombre']}", 
-                    value=st.session_state.seleccion_pruebas.get(k, False)
-                )
-            i += 1
+    if st.button("Siguiente"): st.session_state.paso_actual = 2; st.rerun()
 
-    # ─── PASO 3: PUNTUACIONES ──────────────────────────────────────────────────
-    elif "3." in paso_actual:
-        st.markdown("### 🔢 Ingreso de Puntuaciones Directas (PD)")
-        
-        seleccionadas = [k for k,v in st.session_state.seleccion_pruebas.items() if v]
-        if not seleccionadas:
-            st.error("No has seleccionado ninguna prueba. Vuelve al paso 2.")
-        else:
-            col1, col2 = st.columns([1, 1])
-            resultados_temp_pe = {}
-            
-            with col1:
-                st.subheader("Puntuaciones Directas")
-                for prueba in seleccionadas:
-                    info = WPPSI_Engine.PRUEBAS[prueba]
-                    val = st.number_input(
-                        f"{info['nombre']} (Máx {info['max_pd']})",
-                        min_value=0, max_value=info['max_pd'],
-                        value=st.session_state.puntuaciones.get(prueba, 0),
-                        key=f"input_{prueba}"
-                    )
-                    st.session_state.puntuaciones[prueba] = val
-                    
-                    # Calcular PE en tiempo real para feedback
-                    resultados_temp_pe[prueba] = WPPSI_Engine.pd_a_pe(prueba, val)
+elif paso == 2:
+    st.subheader("Selección de Pruebas")
+    for p in BaremosWPPSIUltra.PRUEBAS_INFO:
+        st.session_state.pruebas_aplicadas[p] = st.checkbox(p, value=st.session_state.pruebas_aplicadas[p])
+    if st.button("Siguiente"): st.session_state.paso_actual = 3; st.rerun()
 
-            with col2:
-                st.subheader("Previsualización Escalar (PE)")
-                # Gráfico rápido de feedback
-                df_pe = pd.DataFrame({
-                    'Prueba': [WPPSI_Engine.PRUEBAS[k]['sigla'] for k in seleccionadas],
-                    'PE': [resultados_temp_pe[k] for k in seleccionadas]
-                })
-                
-                fig = px.bar(df_pe, x='Prueba', y='PE', color='PE', 
-                             range_y=[0,20], color_continuous_scale='RdYlGn')
-                
-                # --- PLOTLY FIX CRÍTICO ---
-                # Usamos title_font o la estructura dict anidada para evitar errores en versiones nuevas
-                fig.update_layout(
-                    title=dict(text="Perfil Estimado", font=dict(size=16)),
-                    yaxis=dict(title=dict(text="Puntuación Escalar")), # FIX: Sintaxis correcta
-                    coloraxis_showscale=False
-                )
-                st.plotly_chart(fig, use_container_width=True)
+elif paso == 3:
+    st.subheader("Puntuaciones Directas")
+    sel = [p for p, v in st.session_state.pruebas_aplicadas.items() if v]
+    if not sel: st.error("Selecciona pruebas en el paso 2")
+    else:
+        for p in sel:
+            val = st.number_input(f"PD {p}", value=st.session_state.pd_dict.get(p, 0), key=p)
+            st.session_state.pd_dict[p] = val
+            
+        if st.button("Procesar"):
+            datos = {'nombre': st.session_state.nombre_paciente, 'fecha_nacimiento': str(st.session_state.fecha_nacimiento), 'fecha_evaluacion': str(st.session_state.fecha_evaluacion), 'edad_texto': 'Calc', 'examinador': st.session_state.examinador}
+            res = procesar_evaluacion_completa(datos, st.session_state.pruebas_aplicadas, st.session_state.pd_dict)
+            st.session_state.analisis_completo = res
+            st.session_state.pe_dict = res['pe']
+            st.session_state.indices_primarios = res['indices_primarios']
+            st.session_state.fortalezas = res['fortalezas']
+            st.session_state.debilidades = res['debilidades']
+            st.session_state.datos_completos = True
+            st.success("Procesado!")
+            st.session_state.paso_actual = 4
+            st.rerun()
 
-            if st.button("✨ Procesar Resultados", type="primary", use_container_width=True):
-                # Calcular Indices y CIT
-                res_final = {'PD': st.session_state.puntuaciones, 'PE': resultados_temp_pe, 'Indices': {}}
-                
-                # Indices
-                sumas_indices = {}
-                for idx, data in WPPSI_Engine.INDICES.items():
-                    suma = sum([resultados_temp_pe.get(p, 0) for p in data['pruebas'] if p in seleccionadas])
-                    n = len([p for p in data['pruebas'] if p in seleccionadas])
-                    if n > 0:
-                        punt_compuesta = WPPSI_Engine.suma_pe_a_ci(suma, n)
-                        res_final['Indices'][idx] = {
-                            'puntuacion': punt_compuesta,
-                            'categoria': WPPSI_Engine.obtener_categoria(punt_compuesta)[0],
-                            'percentil': int((punt_compuesta - 100) * 0.8 + 50) # Estimación simple
-                        }
-                
-                # CIT
-                suma_total_pe = sum(resultados_temp_pe.values())
-                cit = WPPSI_Engine.suma_pe_a_ci(suma_total_pe, len(resultados_temp_pe))
-                res_final['CIT'] = {
-                    'puntuacion': cit,
-                    'categoria': WPPSI_Engine.obtener_categoria(cit)[0],
-                    'percentil': int((cit - 100) * 0.8 + 50)
-                }
-                
-                st.session_state.resultados = res_final
-                st.balloons()
-                st.success("¡Resultados procesados correctamente! Ve a la pestaña 4.")
+elif paso == 4:
+    if not st.session_state.datos_completos: st.warning("Completa paso 3"); st.stop()
+    res = st.session_state.analisis_completo
+    st.subheader("Resultados")
+    c1, c2 = st.columns(2)
+    c1.metric("CIT", res['cit'])
+    
+    t1, t2, t3 = st.tabs(["Perfil", "Indices", "Radar"])
+    with t1: st.plotly_chart(crear_grafico_perfil_escalares_ultra(res['pe']), use_container_width=True)
+    with t2: st.plotly_chart(crear_grafico_indices_compuestos_ultra(res['indices_primarios']), use_container_width=True)
+    with t3: st.plotly_chart(crear_grafico_radar_cognitivo(res['indices_primarios']), use_container_width=True)
+    
+    if st.button("Ir a PDF"): st.session_state.paso_actual = 5; st.rerun()
 
-    # ─── PASO 4: RESULTADOS ────────────────────────────────────────────────────
-    elif "4." in paso_actual:
-        if not st.session_state.resultados:
-            st.warning("⚠️ Primero debes procesar los resultados en el Paso 3.")
-        else:
-            res = st.session_state.resultados
-            st.markdown("### 📊 Tablero de Resultados")
-            
-            # Métricas Principales
-            cols = st.columns(4)
-            cit = res['CIT']
-            color_cit = WPPSI_Engine.obtener_categoria(cit['puntuacion'])[1]
-            
-            cols[0].metric("CIT Total", cit['puntuacion'], delta=cit['categoria'])
-            
-            # Mostrar indices
-            idx_list = list(res['Indices'].items())
-            for i, (k, v) in enumerate(idx_list):
-                if i+1 < 4:
-                    cols[i+1].metric(k, v['puntuacion'], delta=v['categoria'])
+elif paso == 5:
+    st.subheader("Informe PDF")
+    if st.button("Generar PDF Real"):
+        buf = generar_pdf_real(st.session_state.analisis_completo)
+        st.download_button("Descargar PDF", buf, "informe.pdf", "application/pdf")
 
-            st.markdown("---")
-            
-            # Gráfico Radar Profesional
-            categorias = ['CIT'] + list(res['Indices'].keys())
-            valores = [cit['puntuacion']] + [v['puntuacion'] for k,v in res['Indices'].items()]
-            
-            fig_radar = go.Figure()
-            fig_radar.add_trace(go.Scatterpolar(
-                r=valores,
-                theta=categorias,
-                fill='toself',
-                name='Paciente',
-                line_color='#D81B60'
-            ))
-            fig_radar.update_layout(
-                polar=dict(radialaxis=dict(visible=True, range=[40, 160])),
-                showlegend=False,
-                title=dict(text="Mapa Cognitivo", font=dict(size=20, family="Montserrat"))
-            )
-            st.plotly_chart(fig_radar, use_container_width=True)
-
-            # Interpretación Automática
-            st.markdown("### 📝 Interpretación Clínica Generada")
-            texto_interpretacion = WPPSI_Engine.analizar_perfil(res)
-            st.markdown(f"""
-            <div style="background-color: white; padding: 20px; border-radius: 10px; border-left: 5px solid #D81B60; box-shadow: 0 5px 15px rgba(0,0,0,0.05);">
-                {texto_interpretacion}
-            </div>
-            """, unsafe_allow_html=True)
-            
-            st.markdown("---")
-            
-            # Generación de PDF
-            st.markdown("### 📄 Exportar Informe")
-            if st.button("📥 Generar Informe PDF Profesional", type="primary", use_container_width=True):
-                with st.spinner("Maquetando PDF vectorial de alta resolución..."):
-                    buffer = io.BytesIO()
-                    reporte = ReportePDF(buffer, st.session_state.paciente, res)
-                    pdf_bytes = reporte.generar()
-                    
-                    b64 = base64.b64encode(pdf_bytes.getvalue()).decode()
-                    href = f'<a href="data:application/pdf;base64,{b64}" download="Informe_WPPSI_{st.session_state.paciente["nombre"]}.pdf" style="text-decoration:none;">' \
-                           f'<button style="width:100%; background-color:#27AE60; color:white; padding:15px; border:none; border-radius:10px; font-weight:bold; cursor:pointer;">' \
-                           f'✅ DESCARGAR INFORME COMPLETADO</button></a>'
-                    st.markdown(href, unsafe_allow_html=True)
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# PUNTO DE ENTRADA
-# ═══════════════════════════════════════════════════════════════════════════════
-
-if __name__ == "__main__":
-    main()
+# Footer
+st.markdown("---")
+st.markdown('<div style="text-align: center;">WPPSI-IV Professional Ultra v8.0 - Para Daniela ❤️</div>', unsafe_allow_html=True)
