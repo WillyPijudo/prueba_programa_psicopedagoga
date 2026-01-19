@@ -418,13 +418,13 @@ def calcular_edad(fecha_nacimiento, fecha_aplicacion):
     
     return years, months, days
 
-def convertir_pd_a_pe(prueba, pd):
+def convertir_pd_a_pe(prueba, pd_valor):
     """Convierte una Puntuación Directa (PD) a Puntuación Escalar (PE)"""
-    if pd is None or pd == '':
+    if pd_valor is None or pd_valor == '':
         return None
     
     try:
-        pd_int = int(pd)
+        pd_int = int(pd_valor)
         return TABLAS_CONVERSION.get(prueba, {}).get(pd_int, None)
     except:
         return None
@@ -600,7 +600,6 @@ def crear_grafico_perfil_escalares(pe_dict):
         yaxis=dict(
             range=[0, 20],
             dtick=1,
-            # CORRECCIÓN DE PLOTLY: titlefont ya no se usa, se usa title como diccionario
             title=dict(text='Puntuación Escalar (PE)', font=dict(size=14, color='#212529')),
             tickfont=dict(size=12, color='#212529'),
             showgrid=True,
@@ -674,14 +673,12 @@ def crear_grafico_perfil_compuestas(indices):
             'xanchor': 'center'
         },
         xaxis=dict(
-            # CORRECCIÓN DE PLOTLY: Sintaxis moderna para títulos de ejes
             title=dict(text='Índices WPPSI-IV', font=dict(size=14, color='#212529')),
             tickfont=dict(size=13, color='#212529')
         ),
         yaxis=dict(
             range=[40, 160],
             dtick=10,
-            # CORRECCIÓN DE PLOTLY: Sintaxis moderna para títulos de ejes
             title=dict(text='Puntuación Compuesta', font=dict(size=14, color='#212529')),
             tickfont=dict(size=12, color='#212529'),
             showgrid=True,
@@ -761,7 +758,6 @@ def crear_curva_normal(cit_value):
         xaxis=dict(
             range=[40, 160],
             dtick=10,
-            # CORRECCIÓN DE PLOTLY: Sintaxis moderna para títulos de ejes
             title=dict(text='Puntuación Compuesta', font=dict(size=14, color='#212529')),
             tickfont=dict(size=12, color='#212529'),
             showgrid=True,
@@ -769,7 +765,6 @@ def crear_curva_normal(cit_value):
         ),
         yaxis=dict(
             showticklabels=False,
-            # CORRECCIÓN DE PLOTLY: Sintaxis moderna para títulos de ejes
             title=dict(text='Densidad de Probabilidad', font=dict(size=14, color='#212529')),
             showgrid=False
         ),
@@ -950,8 +945,8 @@ with tab1:
             }
             
             pe_dict = {}
-            for prueba, pd in puntuaciones_directas.items():
-                pe = convertir_pd_a_pe(prueba, pd)
+            for prueba, pd_valor in puntuaciones_directas.items():
+                pe = convertir_pd_a_pe(prueba, pd_valor)
                 if pe is not None:
                     pe_dict[prueba] = pe
             
@@ -1019,7 +1014,6 @@ with tab2:
         
         datos_conversion = []
         for key, nombre_prueba in pruebas_nombres.items():
-            # CORRECCIÓN DE PANDAS: Usamos valor_pd en lugar de pd
             valor_pd = pd_dict.get(key, '-') 
             valor_pe = pe_dict.get(key, '-')
             
@@ -1029,9 +1023,8 @@ with tab2:
                 'PE': valor_pe if valor_pe != '-' else '-'
             })
         
-        # Ahora 'pd' sigue refiriéndose a la librería pandas correctamente
         df_conversion = pd.DataFrame(datos_conversion)
-        st.dataframe(df_conversion, use_container_width=True, hide_index=True)
+        st.dataframe(df_conversion, width=None, hide_index=True, use_container_width=True)
         
         st.markdown("---")
         
@@ -1088,7 +1081,7 @@ with tab3:
             })
         
         df_indices = pd.DataFrame(datos_indices)
-        st.dataframe(df_indices, use_container_width=True, hide_index=True)
+        st.dataframe(df_indices, width=None, hide_index=True, use_container_width=True)
         
         st.markdown("---")
         
