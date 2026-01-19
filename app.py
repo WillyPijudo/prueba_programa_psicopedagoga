@@ -1816,7 +1816,7 @@ elif paso == 3:
 # WPPSI-IV PARTE 4/4 FINAL: PASOS 4 Y 5 + PDF + FOOTER
 # ═══════════════════════════════════════════════════════════════════════════════
 # ═══════════════════════════════════════════════════════════════════════════════
-# PASO 4: RESULTADOS Y ANÁLISIS DETALLADO (CORREGIDO Y SIN ERRORES)
+# PASO 4: RESULTADOS Y ANÁLISIS (ARREGLADO ID DUPLICADOS)
 # ═══════════════════════════════════════════════════════════════════════════════
 
 elif paso == 4:
@@ -1854,24 +1854,11 @@ elif paso == 4:
                     cat_info = resultados['categorias'][key]
                     perc = resultados['percentiles'][key]
                     
-                    st.metric(
-                        label=key,
-                        value=valor,
-                        delta=f"Percentil {perc}"
-                    )
+                    st.metric(label=key, value=valor, delta=f"Percentil {perc}")
                     
                     # Badge de categoría
-                    if "Muy Superior" in cat_info['categoria'] or "Superior" in cat_info['categoria']:
-                        badge_class = "badge-success"
-                    elif "Bajo" in cat_info['categoria'] or "Límite" in cat_info['categoria']:
-                        badge_class = "badge-danger"
-                    else:
-                        badge_class = "badge-warning"
-                    
-                    st.markdown(
-                        f'<span class="badge {badge_class}">{cat_info["categoria"]}</span>',
-                        unsafe_allow_html=True
-                    )
+                    badge_color = "#27ae60" if "Superior" in cat_info['categoria'] else "#f39c12" if "Medio" in cat_info['categoria'] else "#e74c3c"
+                    st.markdown(f'<span style="background-color:{badge_color}; color:white; padding:4px 8px; border-radius:10px; font-size:0.8em;">{cat_info["categoria"]}</span>', unsafe_allow_html=True)
             
             st.markdown("---")
             
@@ -1884,336 +1871,81 @@ elif paso == 4:
                 
                 st.markdown(f"""
                 <div style="background: linear-gradient(135deg, {cat_cit['color']}15 0%, {cat_cit['color']}05 100%); 
-                            padding: 2.5rem; border-radius: 20px; border-left: 6px solid {cat_cit['color']};
-                            box-shadow: 0 8px 25px rgba(0,0,0,0.1);">
-                    <h2 style="color: {cat_cit['color']}; margin: 0; font-weight: 900;">
-                        🧠 CI TOTAL: {cit}
-                    </h2>
-                    <h3 style="color: {cat_cit['color']}; margin-top: 0.5rem; font-weight: 700;">
-                        {cat_cit['categoria']}
-                    </h3>
-                    <p style="margin-top: 1.5rem; font-size: 1.1rem; color: #2c3e50; font-weight: 600;">
-                        <b>📊 Percentil:</b> {perc_cit}<br/>
-                        <b>📈 Intervalo de Confianza 90%:</b> {ic_cit[0]} - {ic_cit[1]}<br/>
-                        <b>💡 Interpretación:</b> {cat_cit['descripcion']}
-                    </p>
+                            padding: 2rem; border-radius: 20px; border-left: 6px solid {cat_cit['color']}; margin-bottom: 20px;">
+                    <h2 style="color: {cat_cit['color']}; margin:0;">🧠 CI TOTAL: {cit}</h2>
+                    <h3 style="color: {cat_cit['color']}; margin-top:0;">{cat_cit['categoria']}</h3>
+                    <p style="color: #2c3e50;"><b>Percentil:</b> {perc_cit} | <b>Intervalo Confianza (90%):</b> {ic_cit[0]} - {ic_cit[1]}</p>
                 </div>
                 """, unsafe_allow_html=True)
             
-            st.markdown("---")
-            
             # Tabla resumen
-            st.markdown("### 📋 Tabla Resumen de Puntuaciones")
-            
+            st.markdown("### 📋 Resumen de Puntuaciones")
             df_completo = pd_lib.DataFrame([
                 {
                     "Prueba": BaremosWPPSIUltra.PRUEBAS_INFO[k]['nombre'],
-                    "Código": BaremosWPPSIUltra.PRUEBAS_INFO[k]['nombre_corto'],
                     "Índice": BaremosWPPSIUltra.PRUEBAS_INFO[k]['indice_primario'],
                     "PD": resultados['pd'][k],
                     "PE": v,
                     "Clasificación": BaremosWPPSIUltra.clasificar_pe(v)
-                }
-                for k, v in resultados['pe'].items()
+                } for k, v in resultados['pe'].items()
             ])
-            
-            st.dataframe(
-                df_completo,
-                use_container_width=True,
-                hide_index=True,
-                column_config={
-                    "PE": st.column_config.ProgressColumn(
-                        "PE",
-                        help="Puntuación Escalar",
-                        format="%d",
-                        min_value=1,
-                        max_value=19,
-                    ),
-                }
-            )
+            st.dataframe(df_completo, use_container_width=True, hide_index=True)
         
         with tab_graficos:
-            st.markdown("### 📊 Visualizaciones Profesionales")
-            
+            st.markdown("### 📊 Visualizaciones")
             # Gráfico de perfil escalar
             fig_pe = crear_grafico_perfil_escalares_ultra(resultados['pe'])
             if fig_pe:
-                # SE AGREGA KEY PARA EVITAR DUPLICATE ID
-                st.plotly_chart(fig_pe, use_container_width=True, key="chart_perfil_escalar_p4")
+                st.plotly_chart(fig_pe, use_container_width=True, key="grafico_perfil_escalar_tab2")
             
-            st.markdown("---")
-            
-            # Gráficos comparativos
             col_g1, col_g2 = st.columns(2)
-            
             with col_g1:
                 fig_indices = crear_grafico_indices_compuestos_ultra(resultados['indices_primarios'])
                 if fig_indices:
-                    # SE AGREGA KEY PARA EVITAR DUPLICATE ID
-                    st.plotly_chart(fig_indices, use_container_width=True, key="chart_indices_p4")
-            
+                    st.plotly_chart(fig_indices, use_container_width=True, key="grafico_indices_tab2")
             with col_g2:
-                fig_comparacion = crear_grafico_comparacion_indices(resultados['indices_primarios'])
-                if fig_comparacion:
-                    # SE AGREGA KEY PARA EVITAR DUPLICATE ID
-                    st.plotly_chart(fig_comparacion, use_container_width=True, key="chart_comparacion_p4")
-            
-            st.markdown("---")
-            
-            # Gráfico radar
-            fig_radar = crear_grafico_radar_cognitivo(resultados['indices_primarios'])
-            if fig_radar:
-                # SE AGREGA KEY PARA EVITAR DUPLICATE ID
-                st.plotly_chart(fig_radar, use_container_width=True, key="chart_radar_p4")
-            
-            # Gráfico de distribución normal
-            if resultados.get('cit'):
-                st.markdown("---")
-                fig_dist = crear_grafico_distribucion_normal(resultados['cit'])
-                if fig_dist:
-                    # SE AGREGA KEY PARA EVITAR DUPLICATE ID
-                    st.plotly_chart(fig_dist, use_container_width=True, key="chart_distribucion_p4")
-        
+                fig_radar = crear_grafico_radar_cognitivo(resultados['indices_primarios'])
+                if fig_radar:
+                    st.plotly_chart(fig_radar, use_container_width=True, key="grafico_radar_tab2")
+
         with tab_comparativo:
-            st.markdown("### 🔍 Análisis de Fortalezas y Debilidades")
+             # Gráfico comparativo
+            fig_comp = crear_grafico_comparacion_indices(resultados['indices_primarios'])
+            if fig_comp:
+                st.plotly_chart(fig_comp, use_container_width=True, key="grafico_comparativo_tab3")
             
-            col_fort, col_deb = st.columns(2)
-            
-            with col_fort:
-                st.markdown("#### ✨ Fortalezas Identificadas")
-                
-                if resultados['fortalezas']:
-                    for item in resultados['fortalezas']:
-                        st.markdown(f"""
-                        <div class="card-container">
-                            <h4 style="color: #27ae60; margin: 0;">
-                                {item['prueba']} ({item['codigo']})
-                            </h4>
-                            <p style="font-size: 1.8rem; font-weight: 900; color: #27ae60; margin: 0.5rem 0;">
-                                PE = {item['pe']}
-                            </p>
-                            <p style="color: #2c3e50; margin: 0;">
-                                <b>📌 Descripción:</b> {item['descripcion']}<br/>
-                                <b>🎯 Evalúa:</b> {item['que_mide']}<br/>
-                                <b>💪 Habilidades:</b> {', '.join(item.get('habilidades', []))}
-                            </p>
-                        </div>
-                        """, unsafe_allow_html=True)
-                        
-                        st.progress(item['pe'] / 19, text=f"PE: {item['pe']}/19")
-                        st.markdown("###")
-                else:
-                    st.info("No se identificaron fortalezas significativas (PE ≥ 13)")
-            
-            with col_deb:
-                st.markdown("#### ⚠️ Áreas de Desarrollo")
-                
-                if resultados['debilidades']:
-                    for item in resultados['debilidades']:
-                        st.markdown(f"""
-                        <div class="card-container">
-                            <h4 style="color: #e74c3c; margin: 0;">
-                                {item['prueba']} ({item['codigo']})
-                            </h4>
-                            <p style="font-size: 1.8rem; font-weight: 900; color: #e74c3c; margin: 0.5rem 0;">
-                                PE = {item['pe']}
-                            </p>
-                            <p style="color: #2c3e50; margin: 0;">
-                                <b>📌 Descripción:</b> {item['descripcion']}<br/>
-                                <b>🎯 Evalúa:</b> {item['que_mide']}<br/>
-                                <b>🔧 Habilidades:</b> {', '.join(item.get('habilidades', []))}
-                            </p>
-                        </div>
-                        """, unsafe_allow_html=True)
-                        
-                        st.progress(item['pe'] / 19, text=f"PE: {item['pe']}/19")
-                        st.markdown("###")
-                else:
-                    st.info("No se identificaron debilidades significativas (PE ≤ 7)")
-            
-            st.markdown("---")
-            
-            # Análisis de dispersión
-            st.markdown("### 📉 Análisis de Dispersión del Perfil")
-            
-            if 'estadisticas_perfil' in resultados:
-                stats = resultados['estadisticas_perfil']
-                
-                col_stat1, col_stat2, col_stat3, col_stat4 = st.columns(4)
-                
-                with col_stat1:
-                    st.metric("PE Mínima", int(stats['pe_min']))
-                
-                with col_stat2:
-                    st.metric("PE Máxima", int(stats['pe_max']))
-                
-                with col_stat3:
-                    st.metric("PE Media", f"{stats['pe_media']:.1f}")
-                
-                with col_stat4:
-                    st.metric("Dispersión", int(stats['pe_rango']))
-                
-                if stats['pe_rango'] >= 5:
-                    st.warning(f"""
-                    ⚠️ **Dispersión Alta**: La diferencia entre la PE más alta ({int(stats['pe_max'])}) y la más baja ({int(stats['pe_min'])}) 
-                    es de {int(stats['pe_rango'])} puntos. Esto sugiere un perfil cognitivo heterogéneo que requiere 
-                    interpretación cuidadosa y análisis individualizado.
-                    """)
-                else:
-                    st.success(f"""
-                    ✅ **Perfil Homogéneo**: La dispersión de {int(stats['pe_rango'])} puntos indica un perfil 
-                    cognitivo relativamente uniforme con capacidades cognitivas estables.
-                    """)
-        
+            col1, col2 = st.columns(2)
+            with col1:
+                st.info("##### Fortalezas (PE ≥ 13)")
+                for f in resultados['fortalezas']:
+                    st.write(f"✅ **{f['prueba']}**: {f['descripcion']}")
+            with col2:
+                st.warning("##### Debilidades (PE ≤ 7)")
+                for d in resultados['debilidades']:
+                    st.write(f"⚠️ **{d['prueba']}**: {d['descripcion']}")
+
         with tab_clinica:
-            st.markdown("### 📝 Interpretación Clínica Narrativa")
-            
-            st.info("""
-            💡 **Nota**: Esta interpretación es generada automáticamente y debe ser 
-            revisada y complementada por un profesional cualificado en evaluación psicológica.
-            """)
-            
-            nombre = st.session_state.nombre_paciente
-            
+            st.markdown("### Interpretación Narrativa")
             if resultados.get('cit'):
-                st.markdown("#### 🧠 Coeficiente Intelectual Total (CIT)")
-                
-                cit = resultados['cit']
-                cat = resultados['categorias']['CIT']
-                perc = resultados['percentiles']['CIT']
-                ic = resultados['intervalos_confianza']['CIT']
-                
-                texto_cit = f"""
-                **{nombre}** obtuvo un Coeficiente Intelectual Total (CIT) de **{cit}**, 
-                que se clasifica en la categoría **{cat['categoria']}** según los baremos del WPPSI-IV.
-                
-                Esta puntuación sitúa al evaluado en el **percentil {perc}**, lo que significa que 
-                su rendimiento intelectual global supera aproximadamente al {perc}% de los niños y niñas de su edad 
-                en la muestra de estandarización.
-                
-                Existe una probabilidad del 90% de que el verdadero CIT de {nombre} se encuentre 
-                en el rango de **{ic[0]} a {ic[1]}** puntos, considerando el error estándar de medida.
-                
-                **Interpretación:** {cat['descripcion']}.
-                """
-                
-                st.markdown(texto_cit)
+                st.write(f"El evaluado obtuvo un **CIT de {resultados['cit']}**, ubicándose en el rango **{resultados['categorias']['CIT']['categoria']}**.")
             
-            st.markdown("---")
-            
-            # Interpretación por índices
-            st.markdown("#### 📊 Interpretación por Índices Primarios")
-            
-            interpretaciones = {
-                'ICV': ('Comprensión Verbal', 
-                       'Este índice refleja la capacidad de razonamiento con información verbal, formación de conceptos verbales y conocimientos adquiridos del entorno.'),
-                'IVE': ('Visoespacial', 
-                       'Mide la capacidad para analizar, sintetizar y organizar información visual, así como comprender relaciones espaciales.'),
-                'IRF': ('Razonamiento Fluido', 
-                       'Evalúa la capacidad para resolver problemas nuevos, detectar relaciones lógicas y pensar de forma abstracta sin depender de conocimientos previos.'),
-                'IMT': ('Memoria de Trabajo', 
-                       'Refleja la capacidad para retener temporalmente información en la memoria, manipularla mentalmente y generar resultados.'),
-                'IVP': ('Velocidad de Procesamiento', 
-                       'Mide la rapidez y precisión en el procesamiento de información visual simple y la ejecución de tareas rutinarias.')
-            }
-            
-            for idx, (nombre_idx, desc_idx) in interpretaciones.items():
-                if idx in resultados['indices_primarios']:
-                    pc = resultados['indices_primarios'][idx]
-                    cat = resultados['categorias'][idx]
-                    
-                    with st.expander(f"**{idx} - {nombre_idx}: {pc}** ({cat['categoria']})"):
-                        st.markdown(f"""
-                        **Puntuación Compuesta:** {pc}  
-                        **Categoría:** {cat['categoria']}  
-                        **Percentil:** {resultados['percentiles'][idx]}
-                        
-                        {desc_idx}
-                        
-                        {nombre} obtuvo una puntuación de {pc} en este índice, clasificada como 
-                        {cat['categoria']}, lo que indica {cat['descripcion'].lower()}.
-                        """)
-        
         with tab_recomendaciones:
-            st.markdown("### 💡 Recomendaciones Profesionales")
-            
             if resultados.get('recomendaciones'):
-                st.success("**Recomendaciones basadas en el perfil del evaluado:**")
-                
-                for i, recom in enumerate(resultados['recomendaciones'], 1):
-                    st.markdown(f"{i}. {recom}")
-            else:
-                st.info("No se generaron recomendaciones específicas")
-            
-            st.markdown("---")
-            
-            st.markdown("#### 📚 Áreas de Intervención Sugeridas")
-            
-            # Basado en debilidades
-            if resultados.get('debilidades'):
-                areas_debiles = [d['indice'] for d in resultados['debilidades']]
-                
-                if 'ICV' in areas_debiles:
-                    with st.expander("🗣️ Comprensión Verbal"):
-                        st.markdown("""
-                        - Estimular el vocabulario a través de lectura diaria
-                        - Conversaciones enriquecedoras sobre temas variados
-                        - Juegos de palabras y categorización
-                        - Actividades de narración de cuentos
-                        """)
-                
-                if 'IVE' in areas_debiles:
-                    with st.expander("🧩 Habilidades Visoespaciales"):
-                        st.markdown("""
-                        - Rompecabezas y construcciones
-                        - Actividades de orientación espacial
-                        - Dibujo y actividades artísticas
-                        - Juegos de construcción (bloques, legos)
-                        """)
-                
-                if 'IRF' in areas_debiles:
-                    with st.expander("🧠 Razonamiento Fluido"):
-                        st.markdown("""
-                        - Resolución de problemas lógicos
-                        - Juegos de estrategia adaptados a la edad
-                        - Actividades de clasificación y seriación
-                        - Experimentos científicos simples
-                        """)
-                
-                if 'IMT' in areas_debiles:
-                    with st.expander("💭 Memoria de Trabajo"):
-                        st.markdown("""
-                        - Simplificar instrucciones en pasos pequeños
-                        - Usar apoyos visuales y recordatorios
-                        - Juegos de memoria adaptados
-                        - Reducir distractores en el ambiente de trabajo
-                        """)
-                
-                if 'IVP' in areas_debiles:
-                    with st.expander("⚡ Velocidad de Procesamiento"):
-                        st.markdown("""
-                        - Permitir tiempo adicional en tareas
-                        - Reducir carga de actividades cronometradas
-                        - No presionar por rapidez, enfatizar precisión
-                        - Actividades de coordinación visomotora
-                        """)
+                for r in resultados['recomendaciones']:
+                    st.write(f"• {r}")
         
         st.markdown("---")
-        
         col_nav1, col_nav2 = st.columns(2)
-        
         with col_nav1:
-            if st.button("⬅️ VOLVER AL PASO 3", use_container_width=True, key="btn_volver_paso3"):
+            if st.button("⬅️ VOLVER AL PASO 3", use_container_width=True, key="btn_volver_3"):
                 st.session_state.paso_actual = 3
                 st.rerun()
-        
         with col_nav2:
             if st.button("➡️ GENERAR INFORME PDF", type="primary", use_container_width=True, key="btn_ir_pdf"):
                 st.session_state.paso_actual = 5
                 st.rerun()
-
 # ═══════════════════════════════════════════════════════════════════════════════
-# PASO 5: GENERAR PDF PROFESIONAL ULTRA (ESTILO IMAGEN)
+# PASO 5: GENERAR PDF PROFESIONAL ULTRA (DISEÑO IDÉNTICO A CAPTURAS)
 # ═══════════════════════════════════════════════════════════════════════════════
 
 elif paso == 5:
@@ -2225,178 +1957,216 @@ elif paso == 5:
     else:
         st.markdown("## <span class='step-number'>5</span> Generación de Informe Profesional", unsafe_allow_html=True)
         st.markdown("---")
-        
         st.success("✅ **Evaluación lista para exportar**")
-        st.info("Generando informe profesional con diseño tabular, gráficos y áreas de oportunidad.")
+        st.info("Generando informe profesional con diseño tabular rojo/blanco, gráficos incrustados y áreas de oportunidad.")
 
-        # Función para exportar imagen de plotly (intento robusto)
-        def plotly_a_imagen_reportlab(fig, ancho=450, alto=250):
+        # --- FUNCIÓN PARA EXPORTAR GRÁFICOS (REQUIERE KALEIDO) ---
+        def get_chart_image(fig, width=500, height=250):
             if fig is None: return None
             try:
-                # Intenta usar kaleido si está instalado
-                img_bytes = fig.to_image(format="png", width=ancho*2, height=alto*2, scale=2)
-                return RLImage(io.BytesIO(img_bytes), width=ancho, height=alto)
-            except:
-                return None
+                # Convertir a imagen en memoria
+                img_bytes = fig.to_image(format="png", width=width*2, height=height*2, scale=2)
+                return RLImage(io.BytesIO(img_bytes), width=width, height=height)
+            except Exception as e:
+                return None # Si falla kaleido, devuelve None y no rompe el PDF
 
-        if st.button("📥 GENERAR Y DESCARGAR INFORME COMPLETO", type="primary", use_container_width=True, key="btn_generar_pdf_full"):
-            with st.spinner("⏳ Maquetando informe profesional (esto puede tardar unos segundos)..."):
+        if st.button("📥 GENERAR Y DESCARGAR INFORME COMPLETO", type="primary", use_container_width=True, key="btn_gen_final"):
+            with st.spinner("⏳ Maquetando informe de alta calidad con gráficos..."):
                 try:
-                    # 1. Configuración del PDF
+                    # 1. Configuración del Documento
                     buffer = io.BytesIO()
                     doc = SimpleDocTemplate(buffer, pagesize=A4, 
-                                          rightMargin=2*cm, leftMargin=2*cm, 
-                                          topMargin=2*cm, bottomMargin=2*cm)
+                                          rightMargin=1.5*cm, leftMargin=1.5*cm, 
+                                          topMargin=1.5*cm, bottomMargin=1.5*cm)
                     
                     elements = []
                     styles = getSampleStyleSheet()
                     
-                    # Estilos personalizados (Colores de la imagen proporcionada)
-                    color_rojo_fuerte = colors.HexColor("#a93226")
-                    color_gris_oscuro = colors.HexColor("#2c3e50")
+                    # COLORES Y ESTILOS (Basados en tus imágenes)
+                    COLOR_HEADER = colors.HexColor("#9E1B32")  # Rojo oscuro tipo WPPSI
+                    COLOR_ROW_EVEN = colors.HexColor("#F2F2F2") # Gris muy claro
+                    COLOR_TEXT_HEADER = colors.white
                     
-                    estilo_titulo = ParagraphStyle('Titulo', parent=styles['Title'], fontSize=20, textColor=color_gris_oscuro, spaceAfter=20)
-                    estilo_h2 = ParagraphStyle('H2', parent=styles['Heading2'], fontSize=14, textColor=color_gris_oscuro, spaceBefore=15, spaceAfter=10)
-                    estilo_normal = ParagraphStyle('Norm', parent=styles['Normal'], fontSize=11, leading=14, spaceAfter=8)
-                    
-                    # Recuperar datos
+                    estilo_titulo = ParagraphStyle('T', parent=styles['Title'], fontSize=22, textColor=COLOR_HEADER, spaceAfter=10)
+                    estilo_subtitulo = ParagraphStyle('S', parent=styles['Heading2'], fontSize=14, textColor=colors.black, spaceBefore=12, spaceAfter=6, backColor=None)
+                    estilo_seccion = ParagraphStyle('Sec', parent=styles['Heading2'], fontSize=12, textColor=colors.white, backColor=COLOR_HEADER, spaceBefore=15, spaceAfter=5, leftIndent=0, firstLineIndent=5, leading=16, borderPadding=5)
+                    estilo_normal = ParagraphStyle('N', parent=styles['Normal'], fontSize=10, leading=13, spaceAfter=4)
+                    estilo_destacado = ParagraphStyle('D', parent=styles['Normal'], fontSize=10, leading=13, spaceAfter=4, fontName='Helvetica-Bold')
+
                     res = st.session_state.analisis_completo
                     dp = res['datos_personales']
 
-                    # 2. ENCABEZADO
-                    elements.append(Paragraph("INFORME PSICOPEDAGÓGICO WPPSI-IV", estilo_titulo))
-                    elements.append(Paragraph(f"<b>Fecha:</b> {datetime.now().strftime('%d/%m/%Y')}", estilo_normal))
-                    elements.append(Spacer(1, 10))
+                    # --- TÍTULO Y DATOS ---
+                    elements.append(Paragraph("INFORME DE EVALUACIÓN WPPSI-IV", estilo_titulo))
+                    
+                    data_datos = [
+                        ["Nombre:", dp['nombre'], "Fecha Evaluación:", dp['fecha_evaluacion']],
+                        ["Edad:", dp['edad_texto'], "Examinador:", dp['examinador']],
+                        ["Sexo:", dp['sexo'], "Motivo:", dp['motivo_consulta'][:30]+"..." if dp['motivo_consulta'] else "Evaluación"]
+                    ]
+                    t_datos = Table(data_datos, colWidths=[2.5*cm, 6*cm, 3.5*cm, 6*cm])
+                    t_datos.setStyle(TableStyle([
+                        ('FONTNAME', (0,0), (-1,-1), 'Helvetica'),
+                        ('FONTSIZE', (0,0), (-1,-1), 10),
+                        ('FONTNAME', (0,0), (0,-1), 'Helvetica-Bold'), # Primera col negrita
+                        ('FONTNAME', (2,0), (2,-1), 'Helvetica-Bold'), # Tercera col negrita
+                        ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
+                        ('BACKGROUND', (0,0), (-1,-1), colors.white),
+                    ]))
+                    elements.append(t_datos)
+                    elements.append(Spacer(1, 15))
 
-                    # 3. INTERPRETACIÓN CIT (Como imagen 1)
+                    # --- SECCIÓN 1: CIT Y ANÁLISIS GENERAL (Imagen 1) ---
+                    elements.append(Paragraph("ANÁLISIS DEL COEFICIENTE INTELECTUAL TOTAL (CIT)", estilo_seccion))
+                    
                     if res.get('cit'):
                         cit = res['cit']
-                        cat_cit = res['categorias']['CIT']['categoria']
-                        perc_cit = res['percentiles']['CIT']
+                        cat = res['categorias']['CIT']['categoria']
+                        perc = res['percentiles']['CIT']
+                        ic = res['intervalos_confianza']['CIT']
                         
-                        elements.append(Paragraph("ANÁLISIS DEL COEFICIENTE INTELECTUAL TOTAL (CIT):", estilo_h2))
-                        texto_cit = f"""El evaluado ha obtenido un CIT de <b>{cit}</b>. Este resultado lo sitúa en la categoría <b>{cat_cit.upper()}</b> en comparación con su grupo de referencia por edad. Su rendimiento se encuentra en el percentil <b>{perc_cit}</b>, lo que indica que supera al {perc_cit}% de los niños de su misma edad cronológica."""
-                        elements.append(Paragraph(texto_cit, estilo_normal))
-                        elements.append(Paragraph("<b>Interpretación Clínica:</b>", estilo_normal))
-                        elements.append(Paragraph("Es importante interpretar este resultado global teniendo en cuenta la variabilidad entre los distintos índices.", estilo_normal))
-                        elements.append(Spacer(1, 15))
-
-                    # 4. TABLA DE PUNTUACIONES (Como imagen 2 - Estilo Tabular Rojo/Blanco)
-                    elements.append(Paragraph("1. Perfil de Puntuaciones Escalares", estilo_h2))
+                        txt_cit = f"""El evaluado ha obtenido un CIT de <b>{cit}</b>. Este resultado lo sitúa en la categoría <b>{cat.upper()}</b> en comparación con su grupo de referencia por edad. Su rendimiento se encuentra en el percentil <b>{perc}</b>, lo que indica que supera al {perc}% de los niños de su misma edad cronológica. (IC 90%: {ic[0]}-{ic[1]})."""
+                        elements.append(Paragraph(txt_cit, estilo_normal))
+                        
+                        # Gráfico Normal
+                        fig_dist = crear_grafico_distribucion_normal(cit)
+                        img_dist = get_chart_image(fig_dist, width=450, height=200)
+                        if img_dist: elements.append(img_dist)
                     
-                    # Intentar meter el gráfico antes de la tabla
-                    fig_perfil = crear_grafico_perfil_escalares_ultra(res['pe'])
-                    img_perfil = plotly_a_imagen_reportlab(fig_perfil, ancho=500, alto=250)
-                    if img_perfil:
-                        elements.append(img_perfil)
+                    elements.append(Spacer(1, 10))
+
+                    # --- SECCIÓN 2: PERFIL DE PUNTUACIONES ESCALARES (Imagen 2) ---
+                    elements.append(Paragraph("1. PERFIL DE PUNTUACIONES ESCALARES", estilo_seccion))
+                    
+                    # Gráfico de Línea
+                    fig_pe = crear_grafico_perfil_escalares_ultra(res['pe'])
+                    img_pe = get_chart_image(fig_pe, width=500, height=250)
+                    if img_pe: 
+                        elements.append(img_pe)
                         elements.append(Spacer(1, 10))
 
-                    # Datos de la tabla
-                    data_pruebas = [["Subprueba", "Puntuación Directa", "Puntuación Escalar", "Clasificación"]]
+                    # TABLA ESTILO CAPTURA (Roja y Blanca)
+                    data_tabla_pe = [["Subprueba", "Punt. Directa", "Punt. Escalar", "Clasificación"]]
                     
-                    # Ordenar por fortaleza/debilidad para que se vea más prolijo
+                    # Lógica para Áreas de Oportunidad
+                    areas_oportunidad = []
+                    areas_fortaleza = []
+                    
                     for k, v in res['pe'].items():
                         nombre = BaremosWPPSIUltra.PRUEBAS_INFO[k]['nombre']
                         pd_val = res['pd'][k]
                         clasif = BaremosWPPSIUltra.clasificar_pe(v)
                         
-                        # Formatear clasificación como en la imagen
-                        if clasif == "Fortaleza": clasif_txt = "Fortaleza (+)"
-                        elif clasif == "Debilidad": clasif_txt = "Debilidad (-)"
-                        else: clasif_txt = "Promedio"
-                        
-                        data_pruebas.append([nombre, str(pd_val), str(v), clasif_txt])
+                        # Guardar para texto posterior
+                        if v <= 7: areas_oportunidad.append(nombre)
+                        if v >= 13: areas_fortaleza.append(nombre)
 
-                    # Estilo de tabla rojo/blanco profesional
-                    t_pruebas = Table(data_pruebas, colWidths=[6*cm, 3.5*cm, 3.5*cm, 3.5*cm])
-                    t_pruebas.setStyle(TableStyle([
-                        # Encabezado Rojo
-                        ('BACKGROUND', (0,0), (-1,0), color_rojo_fuerte),
+                        # Formato tabla
+                        texto_clasif = clasif
+                        if clasif == "Fortaleza": texto_clasif = "Fortaleza (+)"
+                        if clasif == "Debilidad": texto_clasif = "Debilidad (-)"
+                        
+                        data_tabla_pe.append([nombre, str(pd_val), str(v), texto_clasif])
+
+                    t_pe = Table(data_tabla_pe, colWidths=[6*cm, 3*cm, 3*cm, 4*cm])
+                    t_pe.setStyle(TableStyle([
+                        # Cabecera Roja
+                        ('BACKGROUND', (0,0), (-1,0), COLOR_HEADER),
                         ('TEXTCOLOR', (0,0), (-1,0), colors.white),
                         ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
                         ('ALIGN', (0,0), (-1,-1), 'CENTER'),
-                        ('ALIGN', (0,0), (0,-1), 'LEFT'), # Alinear nombres subpruebas a izq
+                        ('ALIGN', (0,0), (0,-1), 'LEFT'), # Alinear nombres a izq
                         ('BOTTOMPADDING', (0,0), (-1,0), 8),
                         ('TOPPADDING', (0,0), (-1,0), 8),
-                        # Cuerpo
+                        # Filas alternas
+                        ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, COLOR_ROW_EVEN]),
                         ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
-                        ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, colors.whitesmoke]),
                         ('FONTNAME', (0,1), (-1,-1), 'Helvetica'),
                         ('SIZE', (0,0), (-1,-1), 10),
                     ]))
-                    elements.append(t_pruebas)
-                    elements.append(Spacer(1, 20))
+                    elements.append(t_pe)
+                    elements.append(Spacer(1, 15))
 
-                    # 5. ÁREAS DE OPORTUNIDAD (Como pidió el usuario)
-                    elements.append(Paragraph("2. Áreas de Oportunidad y Fortalezas", estilo_h2))
+                    # --- SECCIÓN: ÁREAS DE OPORTUNIDAD (Texto Específico) ---
+                    elements.append(Paragraph("ÁREAS DE OPORTUNIDAD Y FORTALEZAS", estilo_subtitulo))
                     
-                    # Lógica para construir el texto
-                    txt_debilidades = []
-                    txt_fortalezas = []
-                    
-                    for k, v in res['pe'].items():
-                        nombre = BaremosWPPSIUltra.PRUEBAS_INFO[k]['nombre']
-                        if v <= 7: txt_debilidades.append(nombre)
-                        if v >= 13: txt_fortalezas.append(nombre)
-
-                    # Mostrar texto de fortalezas
-                    if txt_fortalezas:
-                        elements.append(Paragraph(f"<b>ÁREAS DESTACADAS:</b> Se observan habilidades significativas en: {', '.join(txt_fortalezas)}.", estilo_normal))
-                    else:
-                        elements.append(Paragraph("<b>ÁREAS DESTACADAS:</b> No se observan fortalezas normativas significativas en el perfil actual.", estilo_normal))
-
-                    elements.append(Spacer(1, 5))
-
-                    # Mostrar texto de debilidades (Áreas de oportunidad)
-                    if txt_debilidades:
-                        texto_oportunidad = f"<b>ÁREAS DE OPORTUNIDAD:</b> Sería beneficioso reforzar las áreas de: {', '.join(txt_debilidades)}."
-                        # Usar un estilo resaltado o normal
+                    if areas_oportunidad:
+                        texto_oportunidad = f"<b>ÁREAS DE OPORTUNIDAD:</b> Sería beneficioso reforzar las áreas de: <b>{', '.join(areas_oportunidad)}</b>. Estas subpruebas indican desafíos en comparación con su propio perfil o la norma."
                         elements.append(Paragraph(texto_oportunidad, estilo_normal))
                     else:
-                        elements.append(Paragraph("<b>ÁREAS DE OPORTUNIDAD:</b> No se observan debilidades normativas significativas que requieran intervención inmediata.", estilo_normal))
-
-                    elements.append(Spacer(1, 20))
+                        elements.append(Paragraph("<b>ÁREAS DE OPORTUNIDAD:</b> No se observan debilidades normativas significativas en el perfil actual.", estilo_normal))
                     
-                    # 6. GRÁFICOS ADICIONALES (Radar e Indices)
+                    elements.append(Spacer(1, 5))
+                    
+                    if areas_fortaleza:
+                        texto_fortaleza = f"<b>FORTALEZAS DESTACADAS:</b> El niño muestra un rendimiento sobresaliente en: <b>{', '.join(areas_fortaleza)}</b>."
+                        elements.append(Paragraph(texto_fortaleza, estilo_normal))
+                    
                     elements.append(PageBreak())
-                    elements.append(Paragraph("3. Análisis de Índices Compuestos", estilo_h2))
 
-                    fig_indices = crear_grafico_indices_compuestos_ultra(res['indices_primarios'])
-                    img_indices = plotly_a_imagen_reportlab(fig_indices, ancho=450, alto=250)
+                    # --- SECCIÓN 3: ÍNDICES COMPUESTOS (Imagen 4) ---
+                    elements.append(Paragraph("2. PERFIL DE ÍNDICES COMPUESTOS", estilo_seccion))
                     
-                    if img_indices:
-                        elements.append(img_indices)
-                        elements.append(Spacer(1, 15))
+                    # Gráficos de Índices
+                    fig_ind = crear_grafico_indices_compuestos_ultra(res['indices_primarios'])
+                    img_ind = get_chart_image(fig_ind, width=450, height=220)
+                    if img_ind: elements.append(img_ind)
                     
-                    # Tabla de Índices
-                    data_indices = [["Índice", "Puntuación", "Percentil", "Categoría"]]
+                    elements.append(Spacer(1, 10))
+
+                    # Tabla Índices (Roja estilo manual)
+                    data_indices = [["Índice", "Suma PE", "Puntuación", "Percentil", "Intervalo 90%", "Categoría"]]
+                    
                     for k, v in res['indices_primarios'].items():
-                        if k != 'CIT' and v is not None:
-                            cat = res['categorias'][k]['categoria']
-                            perc = res['percentiles'][k]
-                            data_indices.append([k, str(v), str(perc), cat])
+                        if k != 'CIT' and v is not None: # El CIT ya se mostró arriba o se puede incluir
+                            suma = res['sumas_indices'].get(k, '-')
+                            cat = res['categorias'][k]
+                            ic = res['intervalos_confianza'][k]
+                            data_indices.append([
+                                k, str(suma), str(v), str(res['percentiles'][k]), 
+                                f"{ic[0]}-{ic[1]}", cat['categoria']
+                            ])
                     
-                    t_indices = Table(data_indices, colWidths=[4*cm, 3*cm, 3*cm, 4*cm])
+                    # Añadir CIT al final de la tabla también
+                    if res.get('cit'):
+                        cat = res['categorias']['CIT']
+                        ic = res['intervalos_confianza']['CIT']
+                        # Suma total aproximada
+                        suma_total = sum(res['pe'].values())
+                        data_indices.append(["CIT (Total)", str(suma_total), str(res['cit']), str(res['percentiles']['CIT']), f"{ic[0]}-{ic[1]}", cat['categoria']])
+
+                    t_indices = Table(data_indices, colWidths=[3*cm, 2*cm, 2.5*cm, 2.5*cm, 3.5*cm, 3.5*cm])
                     t_indices.setStyle(TableStyle([
-                        ('BACKGROUND', (0,0), (-1,0), color_gris_oscuro),
+                        ('BACKGROUND', (0,0), (-1,0), COLOR_HEADER),
                         ('TEXTCOLOR', (0,0), (-1,0), colors.white),
-                        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
                         ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+                        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
                         ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
-                        ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, colors.whitesmoke])
+                        ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, COLOR_ROW_EVEN]),
                     ]))
                     elements.append(t_indices)
+                    elements.append(Spacer(1, 20))
 
-                    # 7. GENERAR PDF
+                    # --- SECCIÓN 4: RECOMENDACIONES ---
+                    elements.append(Paragraph("RECOMENDACIONES SUGERIDAS", estilo_seccion))
+                    if res['recomendaciones']:
+                        for rec in res['recomendaciones']:
+                            elements.append(Paragraph(f"• {rec}", estilo_normal))
+                    else:
+                        elements.append(Paragraph("Se sugiere continuar monitoreando el desarrollo y estimular las áreas de interés del niño.", estilo_normal))
+
+                    # Generar PDF
                     doc.build(elements)
+                    
                     buffer.seek(0)
                     st.session_state.buffer_pdf = buffer
-                    st.session_state.pdf_generado = True
                     
-                    st.success("✅ Informe generado exitosamente con diseño profesional.")
+                    st.success("✅ Informe PDF generado exitosamente.")
+                    if not img_pe: # Si no se generó imagen, avisar
+                        st.warning("⚠️ Nota: Los gráficos no se pudieron generar en el PDF. Asegúrate de tener instalada la librería 'kaleido'.")
+                    
                     st.balloons()
                     
-                    # Botón descarga
                     nombre_archivo = f"Informe_WPPSI_{dp['nombre'].replace(' ', '_')}.pdf"
                     st.download_button(
                         label="⬇️ DESCARGAR PDF PROFESIONAL",
@@ -2405,11 +2175,10 @@ elif paso == 5:
                         mime="application/pdf",
                         type="primary"
                     )
-                    
-                except Exception as e:
-                    st.error(f"Error generando PDF: {e}")
-                    st.warning("Nota: Si los gráficos no aparecen en el PDF, es posible que falte la librería 'kaleido' en el servidor.")
 
+                except Exception as e:
+                    st.error(f"❌ Error al generar el PDF: {e}")
+                    st.error("Detalle del error (para soporte): " + str(e))
 # ═══════════════════════════════════════════════════════════════════════════════
 # FOOTER ULTRA PROFESIONAL
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -2422,7 +2191,7 @@ st.markdown("""
         🧠 WPPSI-IV PROFESSIONAL ULTRA SYSTEM v7.5
     </p>
     <p style="font-size: 1.1rem; font-weight: 600; color: #2c3e50; margin-bottom: 0.5rem;">
-        Sistema Integral de Evaluación Psicopedagógica - COMPLETO Y SIN ERRORES
+        Sistema Integral de Evaluación Psicopedagógica
     </p>
     <p style="font-size: 1rem; color: #8B1538; font-weight: 700; margin-top: 1rem;">
         ❤️ Desarrollado especialmente para Daniela
@@ -2431,7 +2200,7 @@ st.markdown("""
         Versión 7.5.0 Professional Ultra Edition | Enero 2026
     </p>
     <p style="font-size: 0.85rem; color: #95a5a6; margin-top: 0.5rem;">
-        Basado en WPPSI-IV de Pearson | Más de 4500 líneas de código
+        Basado en WPPSI-IV de Pearson
     </p>
     <p style="font-size: 0.8rem; color: #bdc3c7; margin-top: 1rem;">
         ⚠️ Herramienta de apoyo profesional | Requiere interpretación por psicólogo/a cualificado/a
@@ -2484,3 +2253,4 @@ if st.session_state.datos_completos:
     st.sidebar.success("✅ Sistema listo - Evaluación completa")
 else:
     st.sidebar.info(f"ℹ️ En proceso - Paso {st.session_state.paso_actual}/5")
+
