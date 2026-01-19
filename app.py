@@ -23,67 +23,69 @@ st.set_page_config(
 if 'datos_completos' not in st.session_state:
     st.session_state.datos_completos = False
 
-# ==================== ESTILOS CSS PROFESIONALES ====================
+# ==================== ESTILOS CSS PROFESIONALES Y ARREGLO DE FUENTES ====================
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
     
+    /* Configuración Global */
     * {
         font-family: 'Roboto', sans-serif;
     }
     
     .stApp {
         background: linear-gradient(to bottom, #f8f9fa, #e9ecef);
+        color: #212529; /* Texto oscuro por defecto */
     }
     
+    /* Títulos con Sombras y Degradados */
     h1 {
-        color: #212529 !important;
         font-weight: 700 !important;
         text-align: center;
         background: linear-gradient(135deg, #8B1538 0%, #a91d3a 100%);
         color: white !important;
         padding: 1.5rem;
         border-radius: 12px;
-        box-shadow: 0 4px 15px rgba(139, 21, 56, 0.3);
+        box-shadow: 0 10px 20px rgba(139, 21, 56, 0.2);
         margin-bottom: 2rem;
         animation: fadeInDown 0.8s ease-out;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
     }
     
     h2 {
         color: #212529 !important;
         font-weight: 600 !important;
-        border-left: 5px solid #8B1538;
+        border-left: 6px solid #8B1538;
         padding-left: 15px;
-        margin-top: 2rem;
-        margin-bottom: 1rem;
+        margin-top: 2.5rem;
+        margin-bottom: 1.5rem;
         animation: fadeInLeft 0.6s ease-out;
+        background: white;
+        padding: 10px 15px;
+        border-radius: 0 8px 8px 0;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
     }
     
     h3 {
         color: #343a40 !important;
         font-weight: 500 !important;
         margin-top: 1.5rem;
-        animation: fadeIn 0.5s ease-out;
     }
     
-    h4 {
-        color: #495057 !important;
-        font-weight: 500 !important;
-    }
-    
+    /* Inputs y Campos de Texto - Más visibles */
     .stTextInput > div > div > input,
     .stNumberInput > div > div > input,
     .stDateInput > div > div > input,
-    .stSelectbox > div > div > select,
-    .stTextArea > div > div > textarea {
+    .stSelectbox > div > div > select {
         background-color: #ffffff !important;
         color: #212529 !important;
-        border: 2px solid #ced4da !important;
-        border-radius: 8px !important;
-        padding: 0.6rem !important;
+        border: 2px solid #e0e0e0 !important;
+        border-radius: 10px !important;
+        padding: 0.8rem !important;
         font-size: 16px !important;
         font-weight: 500 !important;
         transition: all 0.3s ease;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
     }
     
     .stTextInput > div > div > input:focus,
@@ -91,57 +93,45 @@ st.markdown("""
     .stDateInput > div > div > input:focus,
     .stSelectbox > div > div > select:focus {
         border-color: #8B1538 !important;
-        box-shadow: 0 0 0 3px rgba(139, 21, 56, 0.15) !important;
+        box-shadow: 0 4px 12px rgba(139, 21, 56, 0.15) !important;
+        transform: translateY(-1px);
     }
     
     label {
         color: #212529 !important;
-        font-weight: 600 !important;
+        font-weight: 700 !important;
         font-size: 15px !important;
         margin-bottom: 0.5rem !important;
     }
     
+    /* Botones con estilo Premium */
     .stButton > button {
         background: linear-gradient(135deg, #8B1538 0%, #a91d3a 100%) !important;
         color: #ffffff !important;
         font-weight: 600 !important;
         border: none !important;
         padding: 0.8rem 2rem !important;
-        border-radius: 10px !important;
+        border-radius: 12px !important;
         font-size: 17px !important;
         width: 100%;
-        box-shadow: 0 4px 12px rgba(139, 21, 56, 0.3) !important;
+        box-shadow: 0 4px 15px rgba(139, 21, 56, 0.3) !important;
         transition: all 0.3s ease !important;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
     }
     
     .stButton > button:hover {
         background: linear-gradient(135deg, #a91d3a 0%, #8B1538 100%) !important;
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(139, 21, 56, 0.4) !important;
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(139, 21, 56, 0.4) !important;
     }
     
-    [data-testid="stMetricValue"] {
-        color: #212529 !important;
-        font-size: 2.5rem !important;
-        font-weight: 700 !important;
-    }
-    
-    [data-testid="stMetricLabel"] {
-        color: #495057 !important;
-        font-weight: 600 !important;
-        font-size: 1rem !important;
-    }
-    
-    [data-testid="stMetricDelta"] {
-        color: #8B1538 !important;
-        font-weight: 600 !important;
-    }
-    
+    /* Tarjetas de Métricas (KPIs) */
     div[data-testid="metric-container"] {
         background: white;
         padding: 1.5rem;
-        border-radius: 12px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        border-radius: 15px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
         border-left: 5px solid #8B1538;
         transition: all 0.3s ease;
         animation: fadeInUp 0.5s ease-out;
@@ -149,192 +139,179 @@ st.markdown("""
     
     div[data-testid="metric-container"]:hover {
         transform: translateY(-5px);
-        box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
     }
+    
+    [data-testid="stMetricValue"] {
+        color: #212529 !important;
+        font-weight: 800 !important;
+        font-size: 2.2rem !important;
+    }
+    
+    [data-testid="stMetricLabel"] {
+        color: #6c757d !important;
+        font-size: 1rem !important;
+        font-weight: 600 !important;
+    }
+    
+    /* CORRECCIÓN DE VISIBILIDAD EN ALERTAS (Success/Warning) */
+    /* Forzamos el color del texto a oscuro para que se lea sobre fondos claros */
     
     .stSuccess {
         background-color: #d4edda !important;
-        color: #155724 !important;
-        border-left: 5px solid #28a745 !important;
-        padding: 1rem !important;
-        border-radius: 8px !important;
-        font-weight: 500 !important;
+        border-left: 6px solid #28a745 !important;
+        padding: 1.2rem !important;
+        border-radius: 10px !important;
+        box-shadow: 0 4px 10px rgba(40, 167, 69, 0.1) !important;
         animation: slideInRight 0.5s ease-out;
     }
     
-    .stError {
-        background-color: #f8d7da !important;
-        color: #721c24 !important;
-        border-left: 5px solid #dc3545 !important;
-        padding: 1rem !important;
-        border-radius: 8px !important;
-        font-weight: 500 !important;
-        animation: shake 0.5s ease-out;
+    /* Selector específico para el texto dentro de success */
+    .stSuccess div, .stSuccess p, .stSuccess label {
+        color: #155724 !important; /* Verde oscuro */
+        font-weight: 600 !important;
+        font-size: 15px !important;
     }
     
     .stWarning {
         background-color: #fff3cd !important;
-        color: #856404 !important;
-        border-left: 5px solid #ffc107 !important;
-        padding: 1rem !important;
-        border-radius: 8px !important;
-        font-weight: 500 !important;
+        border-left: 6px solid #ffc107 !important;
+        padding: 1.2rem !important;
+        border-radius: 10px !important;
+        box-shadow: 0 4px 10px rgba(255, 193, 7, 0.1) !important;
+    }
+    
+    /* Selector específico para el texto dentro de warning */
+    .stWarning div, .stWarning p, .stWarning label {
+        color: #856404 !important; /* Marrón oscuro */
+        font-weight: 600 !important;
+        font-size: 15px !important;
     }
     
     .stInfo {
-        background-color: #d1ecf1 !important;
-        color: #0c5460 !important;
-        border-left: 5px solid #17a2b8 !important;
-        padding: 1rem !important;
-        border-radius: 8px !important;
-        font-weight: 500 !important;
-        animation: fadeIn 0.5s ease-out;
+        background-color: #cff4fc !important;
+        border-left: 6px solid #0dcaf0 !important;
+        box-shadow: 0 4px 10px rgba(13, 202, 240, 0.1) !important;
     }
     
+    .stInfo div, .stInfo p {
+        color: #055160 !important; /* Azul oscuro */
+        font-weight: 500 !important;
+    }
+
+    /* Tablas más bonitas */
     .dataframe {
-        border-radius: 10px !important;
+        border-radius: 12px !important;
         overflow: hidden !important;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
-        animation: fadeIn 0.6s ease-out;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08) !important;
+        border: none !important;
     }
     
     .dataframe th {
         background: linear-gradient(135deg, #8B1538 0%, #a91d3a 100%) !important;
-        color: #ffffff !important;
-        font-weight: 700 !important;
-        padding: 14px !important;
-        font-size: 15px !important;
-        text-align: center !important;
+        color: white !important;
+        font-weight: 600 !important;
+        padding: 15px !important;
     }
     
     .dataframe td {
+        color: #333 !important;
         padding: 12px !important;
-        color: #212529 !important;
-        background: #ffffff !important;
-        font-weight: 500 !important;
-        font-size: 14px !important;
-        text-align: center !important;
-        border-bottom: 1px solid #dee2e6 !important;
+        border-bottom: 1px solid #f0f0f0 !important;
     }
     
     .dataframe tr:hover td {
-        background: #f8f9fa !important;
+        background-color: #fff0f3 !important; /* Rosado muy suave al pasar mouse */
+        color: #8B1538 !important;
+        font-weight: 600 !important;
+        cursor: default;
     }
-    
-    hr {
-        margin: 2rem 0;
-        border: none;
-        height: 3px;
-        background: linear-gradient(90deg, transparent, #8B1538, transparent);
-        animation: fadeIn 0.8s ease-out;
-    }
-    
+
+    /* Tabs (Pestañas) */
     .stTabs [data-baseweb="tab-list"] {
-        gap: 10px;
+        gap: 15px;
         background: white;
-        padding: 10px;
-        border-radius: 10px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        padding: 15px;
+        border-radius: 15px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        margin-bottom: 2rem;
     }
     
     .stTabs [data-baseweb="tab"] {
-        background-color: #f8f9fa;
+        background-color: #f1f3f5;
         color: #495057;
-        border-radius: 8px;
-        padding: 12px 24px;
+        border-radius: 10px;
+        padding: 12px 30px;
         font-weight: 600;
         transition: all 0.3s ease;
+        border: none !important;
     }
     
     .stTabs [aria-selected="true"] {
         background: linear-gradient(135deg, #8B1538 0%, #a91d3a 100%);
         color: white;
+        box-shadow: 0 4px 12px rgba(139, 21, 56, 0.3);
     }
-    
-    @keyframes fadeIn {
-        from { opacity: 0; }
-        to { opacity: 1; }
-    }
-    
+
+    /* Animaciones */
     @keyframes fadeInDown {
-        from { opacity: 0; transform: translateY(-20px); }
+        from { opacity: 0; transform: translateY(-30px); }
         to { opacity: 1; transform: translateY(0); }
     }
     
     @keyframes fadeInUp {
-        from { opacity: 0; transform: translateY(20px); }
+        from { opacity: 0; transform: translateY(30px); }
         to { opacity: 1; transform: translateY(0); }
     }
     
     @keyframes fadeInLeft {
-        from { opacity: 0; transform: translateX(-20px); }
+        from { opacity: 0; transform: translateX(-30px); }
         to { opacity: 1; transform: translateX(0); }
     }
     
     @keyframes slideInRight {
-        from { opacity: 0; transform: translateX(100px); }
+        from { opacity: 0; transform: translateX(50px); }
         to { opacity: 1; transform: translateX(0); }
-    }
-    
-    @keyframes pulse {
-        0%, 100% { transform: scale(1); }
-        50% { transform: scale(1.02); }
-    }
-    
-    @keyframes shake {
-        0%, 100% { transform: translateX(0); }
-        10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
-        20%, 40%, 60%, 80% { transform: translateX(5px); }
     }
     
     @keyframes wave {
         0%, 100% { transform: rotate(0deg); }
-        25% { transform: rotate(10deg); }
-        75% { transform: rotate(-10deg); }
+        25% { transform: rotate(15deg); }
+        75% { transform: rotate(-15deg); }
     }
     
-    ::-webkit-scrollbar {
-        width: 10px;
-        height: 10px;
-    }
-    
-    ::-webkit-scrollbar-track {
-        background: #f1f1f1;
-    }
-    
-    ::-webkit-scrollbar-thumb {
-        background: #8B1538;
-        border-radius: 5px;
-    }
-    
-    ::-webkit-scrollbar-thumb:hover {
-        background: #a91d3a;
-    }
-    
+    /* Footer */
     .footer {
         text-align: center;
-        padding: 2rem;
+        padding: 3rem;
         background: white;
-        border-radius: 12px;
-        margin-top: 3rem;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        border-radius: 20px;
+        margin-top: 4rem;
+        box-shadow: 0 -5px 20px rgba(0,0,0,0.05);
+        border-bottom: 5px solid #8B1538;
     }
     
     .daniela-avatar {
         position: fixed;
-        bottom: 20px;
-        right: 20px;
-        width: 100px;
-        height: 100px;
+        bottom: 30px;
+        right: 30px;
+        width: 110px;
+        height: 110px;
         background: white;
         border-radius: 50%;
-        box-shadow: 0 4px 15px rgba(139, 21, 56, 0.3);
+        box-shadow: 0 8px 25px rgba(139, 21, 56, 0.4);
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 60px;
-        animation: wave 2s ease-in-out infinite;
+        font-size: 65px;
+        animation: wave 3s ease-in-out infinite;
         z-index: 1000;
+        cursor: pointer;
+        transition: transform 0.3s ease;
+    }
+    
+    .daniela-avatar:hover {
+        transform: scale(1.1) rotate(10deg);
     }
     </style>
 """, unsafe_allow_html=True)
